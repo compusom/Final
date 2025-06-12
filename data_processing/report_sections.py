@@ -1206,7 +1206,13 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
         if active_days_total_adset_df is not None and not active_days_total_adset_df.empty:
             merge_cols = [c for c in group_cols if c in active_days_total_adset_df.columns]
             if merge_cols:
-                ranking_df = pd.merge(ranking_df, active_days_total_adset_df[merge_cols + ['Días_Activo_Total']], on=merge_cols, how='left')
+                dedup_active = active_days_total_adset_df.drop_duplicates(subset=merge_cols)
+                ranking_df = pd.merge(
+                    ranking_df,
+                    dedup_active[merge_cols + ['Días_Activo_Total']],
+                    on=merge_cols,
+                    how='left',
+                )
         ranking_df = ranking_df.sort_values('rank_score', ascending=False).head(top_n)
         ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
     else:
@@ -1260,6 +1266,7 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
             df_display = pd.DataFrame(table_rows)
             column_order = ['Campaña','AdSet','Días Act','Públicos Incluidos','Públicos Excluidos'] + metric_labels
             df_display = df_display[[c for c in column_order if c in df_display.columns]]
+            df_display = df_display.drop_duplicates()
             num_cols = [c for c in df_display.columns if c not in ['Campaña','AdSet','Públicos Incluidos','Públicos Excluidos']]
             _format_dataframe_to_markdown(
                 df_display,
