@@ -41,7 +41,7 @@ def _agregar_datos_diarios(df_combined, status_queue, selected_adsets=None):
             'spend':'sum','value':'sum','purchases':'sum','clicks':'sum','impr':'sum','reach':'sum',
             'visits':'sum','clicks_out':'sum', 'rv3':'sum','rv25':'sum','rv75':'sum','rv100':'sum',
             'attention':'sum','interest':'sum','deseo':'sum','addcart':'sum','checkout':'sum',
-            'rtime':'mean','freq':'mean','roas':'mean','cpa':'mean',
+            'rtime':'mean','freq':'mean',
             'Públicos In':lambda x:aggregate_strings(x,separator=', ',max_len=None),
             'Públicos Ex':lambda x:aggregate_strings(x,separator=', ',max_len=None),
             'Entrega':lambda x:aggregate_strings(x,separator='|',max_len=50)
@@ -63,12 +63,10 @@ def _agregar_datos_diarios(df_combined, status_queue, selected_adsets=None):
 
         log_and_update("Calculando métricas derivadas diarias...");
         s_spend=df_daily.get('spend',pd.Series(np.nan,index=df_daily.index));v_value=df_daily.get('value',pd.Series(np.nan,index=df_daily.index));p_purch=df_daily.get('purchases',pd.Series(np.nan,index=df_daily.index));c_clicks=df_daily.get('clicks',pd.Series(np.nan,index=df_daily.index));i_impr=df_daily.get('impr',pd.Series(np.nan,index=df_daily.index));r_reach=df_daily.get('reach',pd.Series(np.nan,index=df_daily.index));vi_visits=df_daily.get('visits',pd.Series(np.nan,index=df_daily.index));co_clicks_out=df_daily.get('clicks_out',pd.Series(np.nan,index=df_daily.index));rv3_s=df_daily.get('rv3',pd.Series(np.nan,index=df_daily.index));rv25_s=df_daily.get('rv25',pd.Series(np.nan,index=df_daily.index));rv75_s=df_daily.get('rv75',pd.Series(np.nan,index=df_daily.index));rv100_s=df_daily.get('rv100',pd.Series(np.nan,index=df_daily.index));
-        ro_roas=df_daily.get('roas',pd.Series(np.nan,index=df_daily.index))
-        cp_cpa=df_daily.get('cpa',pd.Series(np.nan,index=df_daily.index))
         fr_freq=df_daily.get('freq',pd.Series(np.nan,index=df_daily.index))
 
-        df_daily['roas_calc']=safe_division(v_value,s_spend); df_daily['roas']=np.where(ro_roas.notna() & np.isfinite(ro_roas),ro_roas,df_daily['roas_calc'])
-        df_daily['cpa_calc']=safe_division(s_spend,p_purch); df_daily['cpa']=np.where(cp_cpa.notna() & np.isfinite(cp_cpa),cp_cpa,df_daily['cpa_calc'])
+        df_daily['roas'] = safe_division(v_value, s_spend)
+        df_daily['cpa'] = safe_division(s_spend, p_purch)
         df_daily['ctr']=safe_division_pct(c_clicks,i_impr); df_daily['cpm']=safe_division(s_spend,i_impr)*1000
         df_daily['frequency_calc']=safe_division(i_impr,r_reach); fr_num=pd.to_numeric(fr_freq,errors='coerce'); df_daily['frequency']=np.where(pd.notna(fr_num)&np.isfinite(fr_num)&(fr_num>0),fr_num,df_daily['frequency_calc'])
         ctr_dec=safe_division(c_clicks,i_impr); df_daily['ctr_div_freq_ratio']=safe_division(ctr_dec,df_daily['frequency'])
