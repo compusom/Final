@@ -49,6 +49,7 @@ def test_top_ads_basic_columns(capsys):
     assert 'Top 1 Ads Bitácora - Semana actual' in output
     assert 'Anuncio' in output
     assert 'Días Act' in output
+    assert 'Ventas' in output
 
 def test_clean_audience_string():
     assert _clean_audience_string('123:Aud1 | 456:Aud2') == 'Aud1 | Aud2'
@@ -82,6 +83,7 @@ def test_top_adsets_weekly_table(capsys):
     output = "\n".join(logs)
     assert 'Top 1 AdSets Bitácora - Semana actual' in output
     assert 'Días Act' in output
+    assert 'Ventas' in output
 
 
 def test_top_adsets_deduplication():
@@ -132,4 +134,5 @@ def test_top_campaigns_weekly_table(capsys):
     _generar_tabla_bitacora_top_campaigns(df, periods, active, logs.append, '$', top_n=1)
     output = "\n".join(logs)
     assert 'Top 1 Campañas Bitácora - Semana actual' in output
+    assert 'Ventas' in output
 
