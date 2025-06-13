@@ -58,6 +58,13 @@ def _clean_audience_string(aud_str):
     return ", ".join(cleaned)
 
 
+def _remove_commas(text):
+    """Utility to strip commas from campaign, adset and ad names."""
+    if text is None:
+        return ""
+    return str(text).replace(",", "")
+
+
 # Metric labels used in the Top tables
 METRIC_LABELS_BASE = [
     'ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR',
@@ -830,19 +837,19 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
 
     log_func("\nGenerando tablas consolidadas de Ads...");
     log_func("  Preparando Tabla Rendimiento Consolidada...");
-    sort_col_spend = spend_g if spend_g in filtered_ads.columns else None 
-    if sort_col_spend: 
-        df_ads_sorted_spend = filtered_ads.sort_values(sort_col_spend, ascending=False, na_position='last').copy()
-    else: 
-         log_func("Adv: No se pudo ordenar por gasto (columna ausente).")
+    sort_col_roas = 'roas_global' if 'roas_global' in filtered_ads.columns else None
+    if sort_col_roas:
+        df_ads_sorted_spend = filtered_ads.sort_values(sort_col_roas, ascending=False, na_position='last').copy()
+    else:
+         log_func("Adv: No se pudo ordenar por ROAS (columna ausente).")
          df_ads_sorted_spend = filtered_ads.copy()
 
     t1_headers=['Campaña','AdSet','Nombre ADs','Públicos Incluidos','Públicos Excluidos','dias','Estado','Alcance','ROAS','Compras','CVR (%)','AOV','NCPA','CPM','CTR','CTR Saliente','Var U7 CTR','Var U7 ROAS','Var U7 Freq','Var U7 CPM','Var U7 Compras']
     t1_data=[]
     for _,r_row in df_ads_sorted_spend.iterrows(): t1_data.append({
-        'Campaña':r_row.get('Campaign','-'),
-        'AdSet':r_row.get('AdSet','-'),
-        'Nombre ADs':r_row.get('Anuncio','-'),
+        'Campaña':_remove_commas(r_row.get('Campaign','-')),
+        'AdSet':_remove_commas(r_row.get('AdSet','-')),
+        'Nombre ADs':_remove_commas(r_row.get('Anuncio','-')),
         'Públicos Incluidos':_clean_audience_string(r_row.get('Públicos In_global','-')),
         'Públicos Excluidos':_clean_audience_string(r_row.get('Públicos Ex_global','-')),
         'dias':fmt_int(r_row.get('Días_Activo_Total', 0)),
@@ -866,7 +873,14 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
         df_t1=pd.DataFrame(t1_data)
         df_t1 = df_t1[[h for h in t1_headers if h in df_t1.columns]] 
         num_cols_t1=[h for h in df_t1.columns if h not in ['Campaña','AdSet','Nombre ADs','Estado','Públicos Incluidos','Públicos Excluidos']]
-        _format_dataframe_to_markdown(df_t1,f"** Tabla Ads: Rendimiento y Variación (Orden: Gasto Desc) **",log_func,currency_cols=detected_currency, numeric_cols_for_alignment=num_cols_t1, max_col_width=45)
+        _format_dataframe_to_markdown(
+            df_t1,
+            f"** Tabla Ads: Rendimiento y Variación (Orden: ROAS Desc) **",
+            log_func,
+            currency_cols=detected_currency,
+            numeric_cols_for_alignment=num_cols_t1,
+            max_col_width=None,
+        )
         log_func("\n  **Detalle Tabla Ads: Rendimiento y Variación:**");
         log_func("  * **Columnas principales (Alcance, ROAS, etc.):** Muestran el valor *Global Acumulado* para cada Ad durante todo el período de datos analizado.")
         log_func("  * **Columnas 'Var UX ...':** Muestran la variación porcentual del rendimiento en los *Últimos 7 Días* (U7) en comparación con el rendimiento *Global Acumulado* de ese mismo Ad. Una flecha 🔺 indica mejora, 🔻 indica empeoramiento respecto al global del Ad. Ayuda a identificar tendencias recientes.");
@@ -891,9 +905,9 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
     t2_headers=['Campaña','AdSet','Nombre Ads','Públicos Incluidos','Públicos Excluidos','dias','Estado','CTR Glob (%)','Tiempo RV (s)','% RV 25','% RV 75','% RV 100','CPM Stab U7 (%)']
     t2_data=[]
     for _,r_row in df_ads_sorted_roas.iterrows(): t2_data.append({
-        'Campaña':r_row.get('Campaign','-'),
-        'AdSet':r_row.get('AdSet','-'),
-        'Nombre Ads':r_row.get('Anuncio','-'),
+        'Campaña':_remove_commas(r_row.get('Campaign','-')),
+        'AdSet':_remove_commas(r_row.get('AdSet','-')),
+        'Nombre Ads':_remove_commas(r_row.get('Anuncio','-')),
         'Públicos Incluidos':str(r_row.get('Públicos In_global','-')),
         'Públicos Excluidos':str(r_row.get('Públicos Ex_global','-')),
         'dias':fmt_int(r_row.get('Días_Activo_Total', 0)),
@@ -910,7 +924,15 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
         df_t2 = df_t2[[h for h in t2_headers if h in df_t2.columns]] 
         num_cols_t2=[h for h in df_t2.columns if h not in ['Campaña','AdSet','Nombre Ads','Estado','Públicos Incluidos','Públicos Excluidos']] 
         stab_cols_t2=[h for h in df_t2.columns if 'Stab' in h] 
-        _format_dataframe_to_markdown(df_t2,f"** Tabla Ads: Creatividad y Audiencia (Orden: ROAS Desc > Alcance Desc > Días Act Desc) **",log_func,currency_cols=detected_currency, stability_cols=stab_cols_t2,numeric_cols_for_alignment=num_cols_t2,max_col_width=45)
+        _format_dataframe_to_markdown(
+            df_t2,
+            f"** Tabla Ads: Creatividad y Audiencia (Orden: ROAS Desc > Alcance Desc > Días Act Desc) **",
+            log_func,
+            currency_cols=detected_currency,
+            stability_cols=stab_cols_t2,
+            numeric_cols_for_alignment=num_cols_t2,
+            max_col_width=None,
+        )
         log_func("\n  **Detalle Tabla Ads: Creatividad y Audiencia:**");
         log_func("  * **CTR Glob (%):** Porcentaje global de clics en el enlace sobre impresiones para el Ad.")
         log_func("  * **Tiempo RV (s):** Tiempo promedio global de reproducción del video (si aplica).")
@@ -1000,9 +1022,9 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
     for _,row_val in df_top.iterrows():
         rv_cols_present = any(row_val.get(c,0)>0 for c in ['rv25','rv75','rv100']) or row_val.get('rtime',0)>0
         table_data.append({
-        'Campaña':row_val.get('Campaign','-'),
-        'AdSet':row_val.get('AdSet','-'),
-        'Anuncio':row_val.get('Anuncio','-'),
+        'Campaña':_remove_commas(row_val.get('Campaign','-')),
+        'AdSet':_remove_commas(row_val.get('AdSet','-')),
+        'Anuncio':_remove_commas(row_val.get('Anuncio','-')),
         'Públicos Incluidos': _clean_audience_string(row_val.get('Públicos In', '-')),
         'Públicos Excluidos': _clean_audience_string(row_val.get('Públicos Ex', '-')),
         'URL FINAL':row_val.get('url_final','-'),
@@ -1154,14 +1176,9 @@ def _generar_tabla_bitacora_top_entities(
     else:
         ranking_df['Días_Activo_Total'] = 0
 
-    if ranking_method == 'ads':
-        ranking_df['roas'] = pd.to_numeric(ranking_df.get('roas'), errors='coerce').fillna(0)
-        ranking_df['impr'] = pd.to_numeric(ranking_df.get('impr'), errors='coerce').fillna(0)
-        ranking_df = ranking_df.sort_values(['roas', 'impr'], ascending=[False, False]).head(top_n)
-    else:
-        ranking_df['rank_score'] = ranking_df['roas'] * ranking_df['reach']
-        ranking_df = ranking_df.sort_values('rank_score', ascending=False).head(top_n)
-        ranking_df.drop(columns='rank_score', inplace=True)
+    ranking_df['roas'] = pd.to_numeric(ranking_df.get('roas'), errors='coerce').fillna(0)
+    ranking_df['impr'] = pd.to_numeric(ranking_df.get('impr'), errors='coerce').fillna(0)
+    ranking_df = ranking_df.sort_values(['roas', 'impr'], ascending=[False, False]).head(top_n)
 
     any_table = False
     display_map = {
@@ -1204,7 +1221,8 @@ def _generar_tabla_bitacora_top_entities(
                 metrics = {k: base_metrics.get(k, '-') for k in metric_labels}
 
             row = {
-                display_map.get(col, col): key_row.get(col, '-') for col in group_cols
+                display_map.get(col, col): _remove_commas(key_row.get(col, '-'))
+                for col in group_cols
             }
             row['Días Act'] = dias_act
             if 'Públicos In' in key_row:
@@ -1239,7 +1257,7 @@ def _generar_tabla_bitacora_top_entities(
 
 
 def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, active_days_total_adset_df, log_func, detected_currency, top_n=20):
-    """Genera tablas por semana con los Top AdSets ordenados por ROAS y alcance."""
+    """Genera tablas por semana con los Top AdSets ordenados por ROAS."""
     group_cols = ['Campaign', 'AdSet']
     _generar_tabla_bitacora_top_entities(
         df_daily_agg,
@@ -1250,19 +1268,19 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
         group_cols,
         'AdSets',
         METRIC_LABELS_BASE,
-        ranking_method='reach',
+        ranking_method='ads',
         top_n=top_n,
-        max_col_width=45,
+        max_col_width=None,
     )
 
     log_func("\n  **Detalle Top AdSets Bitácora:**")
-    log_func("  * Tabla semanal ordenada por ROAS y alcance de cada conjunto de anuncios.")
+    log_func("  * Tabla semanal ordenada por ROAS de cada conjunto de anuncios.")
     log_func("  * Al exportar, las columnas se separan con ';' para su lectura en planillas.")
     log_func("  ---")
 
 
 def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, active_days_total_campaign_df, log_func, detected_currency, top_n=10):
-    """Genera tablas por semana con las Top Campañas ordenadas por ROAS y alcance."""
+    """Genera tablas por semana con las Top Campañas ordenadas por ROAS."""
     group_cols = ['Campaign']
     _generar_tabla_bitacora_top_entities(
         df_daily_agg,
@@ -1273,12 +1291,12 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
         group_cols,
         'Campañas',
         METRIC_LABELS_BASE,
-        ranking_method='reach',
+        ranking_method='ads',
         top_n=top_n,
     )
 
     log_func("\n  **Detalle Top Campañas Bitácora:**")
-    log_func("  * Ranking semanal de campañas ordenadas por ROAS y alcance.")
+    log_func("  * Ranking semanal de campañas ordenadas por ROAS.")
     log_func("  * Las columnas usan ';' como separador para su importación en hojas de cálculo.")
     log_func("  ---")
 
