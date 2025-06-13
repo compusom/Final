@@ -28,7 +28,7 @@ def _clean_audience_string(aud_str):
     # Split on '|' or ',' and strip whitespace
     parts = re.split(r"\s*[|,]\s*", str(aud_str))
     cleaned = [re.sub(r"^\s*\d+\s*:\s*", "", p).strip() for p in parts if p]
-    return " | ".join(cleaned)
+    return ", ".join(cleaned)
 
 
 # Metric labels used in the Top tables
@@ -655,9 +655,9 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
         'impr':'sum','reach':'sum','visits':'sum','rv3':'sum','rv25':'sum','rv75':'sum','rv100':'sum',
         'rtime':'mean','frequency':'mean','cpm':'mean','ctr':'mean','ctr_out':'mean',
         'roas':'mean','cpa':'mean',
-        'rv25_pct':'mean','rv75_pct':'mean','rv100_pct':'mean', 
-        'Públicos In':lambda x:aggregate_strings(x,separator=' | ',max_len=None), 
-        'Públicos Ex':lambda x:aggregate_strings(x,separator=' | ',max_len=None)
+        'rv25_pct':'mean','rv75_pct':'mean','rv100_pct':'mean',
+        'Públicos In':lambda x:aggregate_strings(x,separator=', ',max_len=None),
+        'Públicos Ex':lambda x:aggregate_strings(x,separator=', ',max_len=None)
     }
     agg_dict_ad_global_available={k:v for k,v in agg_dict_base.items() if k in df_daily_agg_copy.columns} 
     if not agg_dict_ad_global_available: log_func("Adv: No hay columnas para agregación global Ads."); return
@@ -914,8 +914,8 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
         'impr':'sum','reach':'sum','rtime':'mean','rv3':'sum',
         'rv25':'sum','rv75':'sum','rv100':'sum','thruplays':'sum','puja':'mean',
         'url_final':lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos In': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos Ex': lambda x: aggregate_strings(x, separator=' | ', max_len=None)
+        'Públicos In': lambda x: aggregate_strings(x, separator=', ', max_len=None),
+        'Públicos Ex': lambda x: aggregate_strings(x, separator=', ', max_len=None)
     }
     agg_dict_available={k:v for k,v in agg_dict.items() if k in df_daily_agg_copy.columns} 
     if not agg_dict_available or 'spend' not in agg_dict_available or 'impr' not in agg_dict_available: 
@@ -1056,8 +1056,8 @@ def _generar_tabla_bitacora_top_entities(
         'rv3': 'sum', 'rv25': 'sum', 'rv75': 'sum', 'rv100': 'sum', 'rtime': 'mean',
         'puja': 'mean', 'interacciones': 'sum', 'comentarios': 'sum',
         'url_final': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos In': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos Ex': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
+        'Públicos In': lambda x: aggregate_strings(x, separator=', ', max_len=None),
+        'Públicos Ex': lambda x: aggregate_strings(x, separator=', ', max_len=None),
     }
 
     period_metrics = {}

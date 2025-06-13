@@ -8,9 +8,13 @@ import numpy as np
 # FUNCIONES DE UTILIDAD GENERAL
 # ============================================================
 def normalize(text):
-    if not isinstance(text, str): text = str(text)
-    s = re.sub(r"\s*\([^)]*\)$", "", text); s = unicodedata.normalize('NFKD', s)
-    s = "".join(c for c in s if not unicodedata.combining(c)); return s.lower().strip()
+    if not isinstance(text, str):
+        text = str(text)
+    s = re.sub(r"\s*\([^)]*\)$", "", text)
+    s = s.replace('|', '')
+    s = unicodedata.normalize('NFKD', s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return s.lower().strip()
 
 def aggregate_strings(series, separator=', ', max_len=70):
     if series.empty or series.isnull().all(): return '-'
