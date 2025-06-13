@@ -47,9 +47,8 @@ norm_map = {
                  normalize('Información de pago agregada')],                                                            # Nuevo mapeo
 
     'purchases': [normalize('Compras'), normalize('Website purchases')], # Compras (que ahora se llamará "Ventas" en el reporte)
-    'value': [normalize('Valor de conversión de compras'), normalize('Website purchase conversion value')], # Valor (que se llamará "Total Ventas")
-    
     'value_avg': [normalize('Valor de conversión de compras promedio'), normalize('Average purchase conversion value')],
+    'value': [normalize('Valor de conversión de compras'), normalize('Website purchase conversion value')], # Valor (que se llamará "Total Ventas")
     'roas': [normalize('ROAS (retorno de la inversión en publicidad) de compras en el sitio web'), normalize('ROAS (retorno de la inversión en publicidad) de compras'), normalize('Website purchase ROAS (return on ad spend)'), normalize('Purchase ROAS (return on ad spend)')],
     'cpa': [normalize('Costo por compra'), normalize('Cost per website purchase'), normalize('Cost per Purchase')],
     

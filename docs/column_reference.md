@@ -15,6 +15,7 @@ This document lists the columns present in the imported Excel reports and how th
 | Impresiones | impr | numeric | mapped via `norm_map` |
 | Alcance | reach | numeric | mapped via `norm_map` |
 | Frecuencia | freq | numeric | mapped via `norm_map` |
+| Valor de conversión de compras | value | numeric | mapped via `norm_map`; if absent, derived from `Valor de conversión de compras promedio` × `Compras` |
 | Valor de conversión de compras promedio | value_avg | numeric | mapped via `norm_map` |
 | Compras | purchases | numeric | mapped via `norm_map` |
 | Visitas a la página de destino | visits | numeric | mapped via `norm_map` |
