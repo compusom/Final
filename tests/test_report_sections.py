@@ -60,6 +60,10 @@ def test_clean_audience_string():
     assert _clean_audience_string('123:Aud1 | 456:Aud2') == 'Aud1, Aud2'
     # Also handle comma separated values
     assert _clean_audience_string('123:Aud1, 456:Aud2') == 'Aud1, Aud2'
+    # Should detect new audiences separated only by spaces
+    sample = '120219213417610120:IG Engagers 60d 120982364718293172:Web Visitors 30d'
+    expected = 'IG Engagers 60d, Web Visitors 30d'
+    assert _clean_audience_string(sample) == expected
 
 
 def test_top_adsets_weekly_table(capsys):
