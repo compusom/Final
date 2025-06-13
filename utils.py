@@ -35,7 +35,9 @@ def aggregate_strings(series, separator=', ', max_len=70):
     items = []
     for val in series.astype(str).dropna():
         items.extend(_split_clean_items(val))
-    unique_strings = pd.unique([s.strip() for s in items if s.strip()])
+    # Pass a numpy array to ``pd.unique`` to avoid deprecation warnings
+    cleaned = np.array([s.strip() for s in items if s.strip()])
+    unique_strings = pd.unique(cleaned)
     if unique_strings.size == 0:
         return '-'
     result = separator.join(unique_strings)
