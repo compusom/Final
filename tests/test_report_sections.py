@@ -1,8 +1,13 @@
 import pandas as pd
 from datetime import datetime
-from data_processing.report_sections import _generar_tabla_bitacora_top_ads
-from data_processing.report_sections import _generar_tabla_bitacora_top_adsets
-from data_processing.report_sections import _generar_tabla_bitacora_top_campaigns
+from data_processing.report_sections import (
+    _generar_tabla_bitacora_top_ads,
+    _generar_tabla_bitacora_top_adsets,
+    _generar_tabla_bitacora_top_campaigns,
+    _generar_tabla_bitacora_top_entities,
+    METRIC_LABELS_ADS,
+    METRIC_LABELS_BASE,
+)
 from data_processing.report_sections import _clean_audience_string
 
 
@@ -160,4 +165,43 @@ def test_top_campaigns_weekly_table(capsys):
     output = "\n".join(logs)
     assert 'Top 1 Campañas Bitácora - Semana actual' in output
     assert 'Ventas' in output
+
+
+def test_generic_helper_ads(capsys):
+    df = pd.DataFrame({
+        'date': pd.to_datetime(['2024-06-01','2024-06-02']),
+        'Campaign': ['Camp','Camp'],
+        'AdSet': ['Set','Set'],
+        'Anuncio': ['Ad1','Ad1'],
+        'spend': [10, 20],
+        'impr': [100, 200],
+        'reach': [80, 150],
+        'purchases': [1, 2],
+        'visits': [10, 20],
+        'value': [50, 120],
+    })
+    periods = [
+        (datetime(2024,6,1), datetime(2024,6,2), 'Semana actual')
+    ]
+    active = pd.DataFrame({
+        'Campaign': ['Camp'],
+        'AdSet': ['Set'],
+        'Anuncio': ['Ad1'],
+        'Días_Activo_Total': [2]
+    })
+    logs = []
+    _generar_tabla_bitacora_top_entities(
+        df,
+        periods,
+        active,
+        logs.append,
+        '$',
+        ['Campaign','AdSet','Anuncio'],
+        'Ads',
+        METRIC_LABELS_ADS,
+        ranking_method='ads',
+        top_n=1
+    )
+    output = "\n".join(logs)
+    assert 'Top 1 Ads Bitácora - Semana actual' in output
 
