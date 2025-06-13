@@ -16,10 +16,28 @@ def normalize(text):
     s = "".join(c for c in s if not unicodedata.combining(c))
     return s.lower().strip()
 
+def _split_clean_items(value):
+    """Split a string on ``|`` or `,` and remove those characters from each part."""
+    if value is None:
+        return []
+    parts = re.split(r"\s*[|,]\s*", str(value))
+    cleaned = []
+    for p in parts:
+        name = p.strip().replace("|", "").replace(",", "")
+        if name:
+            cleaned.append(name)
+    return cleaned
+
+
 def aggregate_strings(series, separator=', ', max_len=70):
-    if series.empty or series.isnull().all(): return '-'
-    unique_strings = series.astype(str).dropna().str.strip().loc[lambda s: s.str.len() > 0].unique()
-    if unique_strings.size == 0: return '-'
+    if series.empty or series.isnull().all():
+        return '-'
+    items = []
+    for val in series.astype(str).dropna():
+        items.extend(_split_clean_items(val))
+    unique_strings = pd.unique([s.strip() for s in items if s.strip()])
+    if unique_strings.size == 0:
+        return '-'
     result = separator.join(unique_strings)
     if max_len is not None and len(result) > max_len:
         result = result[:max_len-3] + '...'
