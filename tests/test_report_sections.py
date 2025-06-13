@@ -57,9 +57,9 @@ def test_top_ads_basic_columns(capsys):
     assert 'Ventas' in output
 
 def test_clean_audience_string():
-    assert _clean_audience_string('123:Aud1 | 456:Aud2') == 'Aud1, Aud2'
+    assert _clean_audience_string('123:Aud1 | 456:Aud2') == 'Aud1 | Aud2'
     # Also handle comma separated values
-    assert _clean_audience_string('123:Aud1, 456:Aud2') == 'Aud1, Aud2'
+    assert _clean_audience_string('123:Aud1, 456:Aud2') == 'Aud1 | Aud2'
 
 
 def test_top_adsets_weekly_table(capsys):
