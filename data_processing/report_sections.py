@@ -58,6 +58,13 @@ def _clean_audience_string(aud_str):
     return ", ".join(cleaned)
 
 
+def _remove_commas(text):
+    """Utility to strip commas from campaign, adset and ad names."""
+    if text is None:
+        return ""
+    return str(text).replace(",", "")
+
+
 # Metric labels used in the Top tables
 METRIC_LABELS_BASE = [
     'ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR',
@@ -840,9 +847,9 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
     t1_headers=['Campaña','AdSet','Nombre ADs','Públicos Incluidos','Públicos Excluidos','dias','Estado','Alcance','ROAS','Compras','CVR (%)','AOV','NCPA','CPM','CTR','CTR Saliente','Var U7 CTR','Var U7 ROAS','Var U7 Freq','Var U7 CPM','Var U7 Compras']
     t1_data=[]
     for _,r_row in df_ads_sorted_spend.iterrows(): t1_data.append({
-        'Campaña':r_row.get('Campaign','-'),
-        'AdSet':r_row.get('AdSet','-'),
-        'Nombre ADs':r_row.get('Anuncio','-'),
+        'Campaña':_remove_commas(r_row.get('Campaign','-')),
+        'AdSet':_remove_commas(r_row.get('AdSet','-')),
+        'Nombre ADs':_remove_commas(r_row.get('Anuncio','-')),
         'Públicos Incluidos':_clean_audience_string(r_row.get('Públicos In_global','-')),
         'Públicos Excluidos':_clean_audience_string(r_row.get('Públicos Ex_global','-')),
         'dias':fmt_int(r_row.get('Días_Activo_Total', 0)),
@@ -891,9 +898,9 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
     t2_headers=['Campaña','AdSet','Nombre Ads','Públicos Incluidos','Públicos Excluidos','dias','Estado','CTR Glob (%)','Tiempo RV (s)','% RV 25','% RV 75','% RV 100','CPM Stab U7 (%)']
     t2_data=[]
     for _,r_row in df_ads_sorted_roas.iterrows(): t2_data.append({
-        'Campaña':r_row.get('Campaign','-'),
-        'AdSet':r_row.get('AdSet','-'),
-        'Nombre Ads':r_row.get('Anuncio','-'),
+        'Campaña':_remove_commas(r_row.get('Campaign','-')),
+        'AdSet':_remove_commas(r_row.get('AdSet','-')),
+        'Nombre Ads':_remove_commas(r_row.get('Anuncio','-')),
         'Públicos Incluidos':str(r_row.get('Públicos In_global','-')),
         'Públicos Excluidos':str(r_row.get('Públicos Ex_global','-')),
         'dias':fmt_int(r_row.get('Días_Activo_Total', 0)),
@@ -1000,9 +1007,9 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
     for _,row_val in df_top.iterrows():
         rv_cols_present = any(row_val.get(c,0)>0 for c in ['rv25','rv75','rv100']) or row_val.get('rtime',0)>0
         table_data.append({
-        'Campaña':row_val.get('Campaign','-'),
-        'AdSet':row_val.get('AdSet','-'),
-        'Anuncio':row_val.get('Anuncio','-'),
+        'Campaña':_remove_commas(row_val.get('Campaign','-')),
+        'AdSet':_remove_commas(row_val.get('AdSet','-')),
+        'Anuncio':_remove_commas(row_val.get('Anuncio','-')),
         'Públicos Incluidos': _clean_audience_string(row_val.get('Públicos In', '-')),
         'Públicos Excluidos': _clean_audience_string(row_val.get('Públicos Ex', '-')),
         'URL FINAL':row_val.get('url_final','-'),
@@ -1204,7 +1211,8 @@ def _generar_tabla_bitacora_top_entities(
                 metrics = {k: base_metrics.get(k, '-') for k in metric_labels}
 
             row = {
-                display_map.get(col, col): key_row.get(col, '-') for col in group_cols
+                display_map.get(col, col): _remove_commas(key_row.get(col, '-'))
+                for col in group_cols
             }
             row['Días Act'] = dias_act
             if 'Públicos In' in key_row:
