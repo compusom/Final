@@ -22,9 +22,13 @@ from config import numeric_internal_cols # Importar desde la raíz del proyecto
 from utils import aggregate_strings
 
 def _clean_audience_string(aud_str):
-    parts = [p.strip() for p in str(aud_str).split('|')]
-    cleaned = [re.sub(r'^\s*\d+\s*:\s*', '', p) for p in parts]
-    return ' | '.join(cleaned)
+    """Remove numeric prefixes from audience names and unify separators."""
+    if aud_str is None or str(aud_str).strip() == "-":
+        return "-"
+    # Split on '|' or ',' and strip whitespace
+    parts = re.split(r"\s*[|,]\s*", str(aud_str))
+    cleaned = [re.sub(r"^\s*\d+\s*:\s*", "", p).strip() for p in parts if p]
+    return " | ".join(cleaned)
 
 
 # ============================================================
@@ -1073,7 +1077,7 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
         return
 
 
-    metric_labels = ['ROAS', 'Inversión', 'Compras', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR', 'Frecuencia']
+    metric_labels = ['ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR', 'Frecuencia']
     any_table = False
 
     for label in period_labels:
@@ -1100,6 +1104,7 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
                     'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
                     'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
                     'Compras': fmt_int(r_row.get('purchases')),
+                    'Ventas': f"{detected_currency}{fmt_float(r_row.get('value'),2)}",
                     'NCPA': f"{detected_currency}{fmt_float(safe_division(r_row.get('spend'), r_row.get('purchases')),2)}",
                     'CVR': fmt_pct(safe_division_pct(r_row.get('purchases'), r_row.get('visits')),2),
                     'AOV': f"{detected_currency}{fmt_float(safe_division(r_row.get('value'), r_row.get('purchases')),2)}",
@@ -1202,14 +1207,20 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
         if active_days_total_adset_df is not None and not active_days_total_adset_df.empty:
             merge_cols = [c for c in group_cols if c in active_days_total_adset_df.columns]
             if merge_cols:
-                ranking_df = pd.merge(ranking_df, active_days_total_adset_df[merge_cols + ['Días_Activo_Total']], on=merge_cols, how='left')
+                dedup_active = active_days_total_adset_df.drop_duplicates(subset=merge_cols)
+                ranking_df = pd.merge(
+                    ranking_df,
+                    dedup_active[merge_cols + ['Días_Activo_Total']],
+                    on=merge_cols,
+                    how='left',
+                )
         ranking_df = ranking_df.sort_values('rank_score', ascending=False).head(top_n)
         ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
     else:
         log_func("\nNo hay datos para la semana actual. Top AdSets Bitácora omitido.")
         return
 
-    metric_labels = ['ROAS', 'Inversión', 'Compras', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR']
+    metric_labels = ['ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR']
     any_table = False
 
     for label in period_labels:
@@ -1234,6 +1245,7 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
                     'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
                     'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
                     'Compras': fmt_int(r_row.get('purchases')),
+                    'Ventas': f"{detected_currency}{fmt_float(r_row.get('value'),2)}",
                     'NCPA': f"{detected_currency}{fmt_float(safe_division(r_row.get('spend'), r_row.get('purchases')),2)}",
                     'CVR': fmt_pct(safe_division_pct(r_row.get('purchases'), r_row.get('visits')),2),
                     'AOV': f"{detected_currency}{fmt_float(safe_division(r_row.get('value'), r_row.get('purchases')),2)}",
@@ -1256,8 +1268,15 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
             df_display = pd.DataFrame(table_rows)
             column_order = ['Campaña','AdSet','Días Act','Públicos Incluidos','Públicos Excluidos'] + metric_labels
             df_display = df_display[[c for c in column_order if c in df_display.columns]]
+            df_display = df_display.drop_duplicates()
             num_cols = [c for c in df_display.columns if c not in ['Campaña','AdSet','Públicos Incluidos','Públicos Excluidos']]
-            _format_dataframe_to_markdown(df_display, f"Top {top_n} AdSets Bitácora - {label}", log_func, numeric_cols_for_alignment=num_cols)
+            _format_dataframe_to_markdown(
+                df_display,
+                f"Top {top_n} AdSets Bitácora - {label}",
+                log_func,
+                numeric_cols_for_alignment=num_cols,
+                max_col_width=45,
+            )
             any_table = True
 
     if not any_table:
@@ -1339,7 +1358,7 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
         log_func("\nNo hay datos para la semana actual. Top Campañas Bitácora omitido.")
         return
 
-    metric_labels = ['ROAS', 'Inversión', 'Compras', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR']
+    metric_labels = ['ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR']
     any_table = False
 
     for label in period_labels:
@@ -1360,6 +1379,7 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
                     'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
                     'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
                     'Compras': fmt_int(r_row.get('purchases')),
+                    'Ventas': f"{detected_currency}{fmt_float(r_row.get('value'),2)}",
                     'NCPA': f"{detected_currency}{fmt_float(safe_division(r_row.get('spend'), r_row.get('purchases')),2)}",
                     'CVR': fmt_pct(safe_division_pct(r_row.get('purchases'), r_row.get('visits')),2),
                     'AOV': f"{detected_currency}{fmt_float(safe_division(r_row.get('value'), r_row.get('purchases')),2)}",

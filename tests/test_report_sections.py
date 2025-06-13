@@ -49,9 +49,12 @@ def test_top_ads_basic_columns(capsys):
     assert 'Top 1 Ads Bitácora - Semana actual' in output
     assert 'Anuncio' in output
     assert 'Días Act' in output
+    assert 'Ventas' in output
 
 def test_clean_audience_string():
     assert _clean_audience_string('123:Aud1 | 456:Aud2') == 'Aud1 | Aud2'
+    # Also handle comma separated values
+    assert _clean_audience_string('123:Aud1, 456:Aud2') == 'Aud1 | Aud2'
 
 
 def test_top_adsets_weekly_table(capsys):
@@ -80,6 +83,32 @@ def test_top_adsets_weekly_table(capsys):
     output = "\n".join(logs)
     assert 'Top 1 AdSets Bitácora - Semana actual' in output
     assert 'Días Act' in output
+    assert 'Ventas' in output
+
+
+def test_top_adsets_deduplication():
+    df = pd.DataFrame({
+        'date': pd.to_datetime(['2024-06-01', '2024-06-02']),
+        'Campaign': ['Camp', 'Camp'],
+        'AdSet': ['Set', 'Set'],
+        'spend': [10, 15],
+        'impr': [100, 150],
+        'reach': [90, 130],
+        'purchases': [1, 1],
+        'visits': [10, 12],
+        'value': [20, 25],
+    })
+    periods = [(datetime(2024, 6, 1), datetime(2024, 6, 2), 'Semana actual')]
+    # Active days with duplicate row
+    active = pd.DataFrame({
+        'Campaign': ['Camp', 'Camp'],
+        'AdSet': ['Set', 'Set'],
+        'Días_Activo_Total': [2, 2],
+    })
+    logs = []
+    _generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
+    row_lines = [l for l in logs if l.startswith('| Camp ')]
+    assert len(row_lines) == 1
 
 
 def test_top_campaigns_weekly_table(capsys):
@@ -105,4 +134,5 @@ def test_top_campaigns_weekly_table(capsys):
     _generar_tabla_bitacora_top_campaigns(df, periods, active, logs.append, '$', top_n=1)
     output = "\n".join(logs)
     assert 'Top 1 Campañas Bitácora - Semana actual' in output
+    assert 'Ventas' in output
 
