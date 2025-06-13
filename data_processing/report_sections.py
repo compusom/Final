@@ -38,7 +38,14 @@ def _clean_audience_string(aud_str):
     if aud_str is None or str(aud_str).strip() == "-":
         return "-"
 
-    parts = re.split(r"\s*[|,]\s*", str(aud_str))
+    text = str(aud_str)
+    # Insert a separator before each new audience detected by the pattern
+    # ``digits:`` when preceded by whitespace. This allows splitting on the
+    # separator regardless of whether the original string used commas, pipes or
+    # just spaces between audiences.
+    text = re.sub(r"(?<=\s)(?=\d+\s*:)", "|", text)
+
+    parts = re.split(r"\s*[|,]\s*", text)
     cleaned = []
     for p in parts:
         if not p:
