@@ -140,13 +140,12 @@ def _generar_tabla_vertical_global(df_daily_agg, detected_currency, log_func):
         rows.append(row)
     df_disp=pd.DataFrame(rows,columns=headers)
     _format_dataframe_to_markdown(df_disp,"",log_func,currency_cols=detected_currency, stability_cols=stability_keys,numeric_cols_for_alignment=[h for h in headers if h!="Metrica"])
-    log_func("\n  **Detalle de Métricas (Global):**");
-    log_func(f"  * **Global ({global_days_count} Dias):** Métricas totales (sumas) o promedios/tasas de toda la cuenta para el período completo de datos ({global_metrics_current.get('date_range','desc.')}).")
-    if previous_month_metrics:
-        log_func(f"  * **{previous_month_label}:** Métricas del mes calendario completo anterior encontrado en los datos ({prev_month_date_range}).")
-        log_func(f"  * **Valor en paréntesis (...) en Global:** Variación porcentual de las Métricas Globales comparadas con el Mes Anterior Completo. Una flecha 🔺 indica mejora, 🔻 indica empeoramiento respecto al mes anterior.")
-    else: log_func("  * **Mes Ant.:** No se encontró un mes anterior completo en los datos para comparación.")
-    log_func("  * **Estabilidad (%):** Mide la consistencia de la métrica diaria dentro del período total. Un % alto indica que la métrica fue estable día a día. Calculada si el período tiene al menos 7 días con datos y cumple umbrales mínimos. Iconos: ✅ >= 50%, 🏆 >= 70%. '-' si no aplica o datos insuficientes.");
+    log_func("\n  **🧾 Cuenta completa: Agregado Total - Comparativa Mensual**")
+    log_func("  * Esta tabla presenta una visión general del desempeño total de la cuenta durante las últimas 4 semanas.")
+    log_func("  * Compara las métricas clave semana a semana: inversión, ventas, ROAS, CPA, CTR, etc.")
+    log_func("  * Las flechas (🔺/🔻) indican si la métrica subió o bajó respecto a la semana anterior.")
+    log_func("  * Se utiliza para entender tendencias macro y evaluar la estabilidad de cada indicador.")
+    log_func("  * La última fila muestra métricas de estabilidad (%), que evalúan la consistencia diaria dentro del período.")
     log_func("  ---")
 
 
@@ -654,10 +653,12 @@ def _generar_tabla_embudo_bitacora(df_daily_agg, bitacora_periods_list, log_func
         df_temp_display=pd.DataFrame(formatted_rows_data,columns=headers_with_pct)
         _format_dataframe_to_markdown(df_temp_display,"",log_func,numeric_cols_for_alignment=[h for h in headers_with_pct if h!="Paso del Embudo"])
     
-    log_func("\n  **Detalle de Métricas (Embudo de Bitácora):**");
-    log_func(f"  * **Paso del Embudo:** Etapa del proceso de conversión (datos agregados de cuenta completa).")
-    log_func(f"  * **Columnas ({'Semana actual, Xª semana anterior' if period_type == 'Weeks' else 'Mes actual, Xº mes anterior'}):** Muestran el valor *Real* acumulado para esa etapa en el período indicado.")
-    log_func(f"  * **% Paso ({'Semana/Mes'}):** Es la tasa de conversión de esta etapa con respecto a la etapa *anterior en el embudo* (ej. Clics/Impresiones) DENTRO DEL MISMO PERÍODO. La Flecha (🔺/🔻) indica si este porcentaje de paso es mayor o menor que el 100%. '-' para el primer paso.");
+    log_func("\n  **🔄 Análisis de Embudo - Comparativa Mensual**")
+    log_func("  * Esta tabla representa el embudo de conversión completo en formato semanal.")
+    log_func("  * Muestra la cantidad de usuarios que pasan por cada etapa (desde impresiones hasta compras).")
+    log_func("  * La columna '% Paso' indica el porcentaje de conversión entre una etapa y la anterior.")
+    log_func("  * Se utiliza para identificar cuellos de botella en el recorrido del usuario.")
+    log_func("  * Las flechas indican si el ratio de paso está por encima o por debajo del 100% (lo esperado).")
     log_func("  ---")
     try:
         locale.setlocale(locale.LC_TIME, original_locale)
@@ -1050,7 +1051,11 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
         num_cols=[h for h in df_display.columns if h not in ['Campaña','AdSet','Anuncio','URL FINAL','Públicos Incluidos','Públicos Excluidos']]
         _format_dataframe_to_markdown(df_display,f"** Top {top_n} Ads por Gasto > ROAS (Global Acumulado) **",log_func,currency_cols=detected_currency, stability_cols=[], numeric_cols_for_alignment=num_cols)
     else: log_func(f"   No hay datos para mostrar en Top {top_n} Ads.");
-    log_func("\n  **Detalle Top Ads Histórico:** Muestra los anuncios con mejor rendimiento histórico, ordenados por ROAS de mayor a menor. Todas las métricas son acumuladas globales.");
+    log_func("\n  **🥈 Top 20 Ads Bitácora – Semanas Anteriores**")
+    log_func("  * Versión histórica de la tabla anterior para la 1ª y 2ª semana previa.")
+    log_func("  * Permite comparar el rendimiento pasado de cada anuncio y ver tendencias o fatiga creativa.")
+    log_func("  * Solo se incluyen anuncios con datos reales disponibles en ese rango.")
+    log_func("  * Sirve para revisar históricos y validar decisiones de optimización previas.")
     log_func("  ---")
 
 def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_days_total_ad_df, log_func, detected_currency, top_n=20):
@@ -1069,9 +1074,12 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
         top_n=top_n,
     )
 
-    log_func("\n  **Detalle Top Ads Bitácora:**")
-    log_func("  * Tabla semanal con los anuncios con mayor ROAS y mayor número de impresiones.")
-    log_func("  * Las columnas están separadas por ';' para facilitar la importación en hojas de cálculo.")
+    log_func("\n  **🥇 Top 20 Ads Bitácora – Semana Actual**")
+    log_func("  * Tabla con los 20 anuncios más relevantes de la semana actual, ordenados por ROAS y días activos.")
+    log_func("  * Incluye métricas clave por anuncio: inversión, compras, ROAS, CVR, AOV, alcance, etc.")
+    log_func("  * La columna 'Públicos Incluidos' indica los segmentos que vieron cada anuncio.")
+    log_func("  * Se usa para analizar qué creatividades y públicos están funcionando mejor.")
+    log_func("  * Ideal para tomar decisiones de escalado o pausa de anuncios.")
     log_func("  ---")
 
 
@@ -1273,9 +1281,16 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
         max_col_width=None,
     )
 
-    log_func("\n  **Detalle Top AdSets Bitácora:**")
-    log_func("  * Tabla semanal ordenada por ROAS de cada conjunto de anuncios.")
-    log_func("  * Al exportar, las columnas se separan con ';' para su lectura en planillas.")
+    log_func("\n  **🧠 Top 20 AdSets Bitácora – Semana Actual**")
+    log_func("  * Ranking de los conjuntos de anuncios (AdSets) más relevantes de la semana actual.")
+    log_func("  * Ordenados por ROAS y días activos, muestran métricas agregadas por conjunto.")
+    log_func("  * Útil para evaluar qué segmentaciones, presupuestos y configuraciones están rindiendo mejor.")
+    log_func("  * Se incluye alcance, impresiones, CTR, CVR y ticket promedio para una evaluación completa.")
+    log_func("  ---")
+    log_func("\n  **🧠 Top 20 AdSets Bitácora – Semanas Anteriores**")
+    log_func("  * Mismo formato que la tabla de AdSets actual, pero para 1ª y 2ª semana previa.")
+    log_func("  * Ayuda a detectar si un AdSet perdió eficacia, se estabilizó o mejoró con el tiempo.")
+    log_func("  * Fundamental para decisiones de iteración, optimización o duplicación de AdSets.")
     log_func("  ---")
 
 
@@ -1295,9 +1310,16 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
         top_n=top_n,
     )
 
-    log_func("\n  **Detalle Top Campañas Bitácora:**")
-    log_func("  * Ranking semanal de campañas ordenadas por ROAS.")
-    log_func("  * Las columnas usan ';' como separador para su importación en hojas de cálculo.")
+    log_func("\n  **📊 Top 10 Campañas Bitácora – Semana Actual**")
+    log_func("  * Tabla resumen con las 10 campañas más importantes de la semana actual.")
+    log_func("  * Se priorizan por ROAS y días activos para identificar las más efectivas.")
+    log_func("  * Incluye públicos incluidos, inversión, ventas y conversiones.")
+    log_func("  * Permite identificar fácilmente qué campañas están generando resultados más sólidos.")
+    log_func("  ---")
+    log_func("\n  **📉 Top 10 Campañas Bitácora – Semanas Anteriores**")
+    log_func("  * Historial semanal de las campañas más relevantes para las semanas previas.")
+    log_func("  * Su análisis es clave para evaluar decisiones pasadas de escalado o pausas.")
+    log_func("  * Se puede observar la evolución del ROAS y la eficiencia de cada campaña en el tiempo.")
     log_func("  ---")
 
 
