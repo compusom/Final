@@ -1098,6 +1098,8 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
             ]
             if sel.empty:
                 metrics = {m: '-' for m in metric_labels}
+                url_val = key_row.get('url_final', '-')
+                puja_raw = key_row.get('puja')
             else:
                 r_row = sel.iloc[0]
                 metrics = {
@@ -1113,12 +1115,22 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
                     'CTR': fmt_pct(r_row.get('ctr'),2),
                     'Frecuencia': fmt_float(r_row.get('frequency'),2),
                 }
+                url_val = r_row.get('url_final', '-')
+                puja_raw = r_row.get('puja')
+
+            puja_display = (
+                f"Manual ({detected_currency}{fmt_float(puja_raw,2)})"
+                if pd.notna(puja_raw) and puja_raw != 0
+                else "Automática"
+            )
 
             row = {
                 'Anuncio': ad,
                 'Campaña': camp,
                 'AdSet': adset,
                 'Días Act': dias_act,
+                'URL': url_val,
+                'Puja': puja_display,
                 'Públicos Incluidos': _clean_audience_string(key_row.get('Públicos In', '-')),
                 'Públicos Excluidos': _clean_audience_string(key_row.get('Públicos Ex', '-')),
             }
@@ -1127,9 +1139,9 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
 
         if table_rows:
             df_display = pd.DataFrame(table_rows)
-            column_order = ['Anuncio','Campaña','AdSet','Días Act','Públicos Incluidos','Públicos Excluidos'] + metric_labels
+            column_order = ['Anuncio','Campaña','AdSet','Días Act','URL','Puja','Públicos Incluidos','Públicos Excluidos'] + metric_labels
             df_display = df_display[[c for c in column_order if c in df_display.columns]]
-            num_cols = [c for c in df_display.columns if c not in ['Anuncio','Campaña','AdSet','Públicos Incluidos','Públicos Excluidos']]
+            num_cols = [c for c in df_display.columns if c not in ['Anuncio','Campaña','AdSet','URL','Puja','Públicos Incluidos','Públicos Excluidos']]
             _format_dataframe_to_markdown(df_display, f"Top {top_n} Ads Bitácora - {label}", log_func, numeric_cols_for_alignment=num_cols)
             any_table = True
 

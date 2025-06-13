@@ -50,6 +50,8 @@ def test_top_ads_basic_columns(capsys):
     assert 'Anuncio' in output
     assert 'Días Act' in output
     assert 'Ventas' in output
+    assert 'URL' in output
+    assert 'Puja' in output
 
 def test_clean_audience_string():
     assert _clean_audience_string('123:Aud1 | 456:Aud2') == 'Aud1 | Aud2'
