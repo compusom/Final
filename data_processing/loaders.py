@@ -174,23 +174,23 @@ def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
                 df_renamed['value'] = df_renamed['value_avg'] * df_renamed['purchases']
             
             def extract_ad_name_safe(txt):
-                """Clean ad name removing pipes and normalizing."""
+                """Clean ad name removing pipe/comma characters and normalizing."""
                 if pd.isna(txt):
                     return ""
                 try:
-                    s = str(txt).replace('|', '')
+                    s = str(txt).replace('|', '').replace(',', '')
                     if '🆔' in s:
                         part = s.split('🆔')[-1].strip()
                         if part:
                             s = part
-                    s = s.replace('|', '').strip()
+                    s = s.replace('|', '').replace(',', '').strip()
                     return normalize(s)
                 except Exception as e_extract:
                     log_and_update(f"     Adv: error extracting ad name: {e_extract}")
                     return ""
 
-            df_renamed['Campaign']=df_renamed.get('campaign', pd.Series(dtype=str)).fillna('(No Campaign)').astype(str).str.replace('|','').apply(normalize)
-            df_renamed['AdSet']=df_renamed.get('adset', pd.Series(dtype=str)).fillna('(No AdSet)').astype(str).str.replace('|','').apply(normalize)
+            df_renamed['Campaign']=df_renamed.get('campaign', pd.Series(dtype=str)).fillna('(No Campaign)').astype(str).str.replace('|','').str.replace(',','').apply(normalize)
+            df_renamed['AdSet']=df_renamed.get('adset', pd.Series(dtype=str)).fillna('(No AdSet)').astype(str).str.replace('|','').str.replace(',','').apply(normalize)
             
             if 'ad' in df_renamed.columns:
                 df_renamed['Anuncio']=df_renamed['ad'].apply(extract_ad_name_safe)
@@ -199,12 +199,12 @@ def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
 
             # MODIFICACIÓN para 'Públicos In' y 'Públicos Ex'
             if 'aud_in' in df_renamed.columns:
-                df_renamed['Públicos In'] = df_renamed['aud_in'].fillna('').astype(str).str.replace('|','').apply(normalize)
+                df_renamed['Públicos In'] = df_renamed['aud_in'].fillna('').astype(str).str.replace('|','').str.replace(',','').apply(normalize)
             else:
                 df_renamed['Públicos In'] = pd.Series('', index=df_renamed.index, dtype=str).apply(normalize)
 
             if 'aud_ex' in df_renamed.columns:
-                df_renamed['Públicos Ex'] = df_renamed['aud_ex'].fillna('').astype(str).str.replace('|','').apply(normalize)
+                df_renamed['Públicos Ex'] = df_renamed['aud_ex'].fillna('').astype(str).str.replace('|','').str.replace(',','').apply(normalize)
             else:
                 df_renamed['Públicos Ex'] = pd.Series('', index=df_renamed.index, dtype=str).apply(normalize)
 

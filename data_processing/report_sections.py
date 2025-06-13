@@ -22,12 +22,33 @@ from config import numeric_internal_cols # Importar desde la raíz del proyecto
 from utils import aggregate_strings
 
 def _clean_audience_string(aud_str):
-    """Remove numeric prefixes from audience names and unify separators."""
+    """Remove numeric prefixes and strip problematic characters from audience names.
+
+    Audience fields may be stored with numeric prefixes and use either ``|`` or
+    `,` as separators. To avoid confusion, any ``|`` or `,` contained within the
+    audience names themselves are removed and the final list is returned joined
+    by a comma.
+
+    Steps performed:
+
+    1. Split the input on ``|`` or `,`.
+    2. Strip numeric prefixes (``123:Name`` -> ``Name``).
+    3. Remove any remaining ``|`` or `,`` characters from each audience.
+    4. Join the cleaned parts with `, `.
+    """
     if aud_str is None or str(aud_str).strip() == "-":
         return "-"
-    # Split on '|' or ',' and strip whitespace
+
     parts = re.split(r"\s*[|,]\s*", str(aud_str))
-    cleaned = [re.sub(r"^\s*\d+\s*:\s*", "", p).strip() for p in parts if p]
+    cleaned = []
+    for p in parts:
+        if not p:
+            continue
+        name = re.sub(r"^\s*\d+\s*:\s*", "", p).strip()
+        name = name.replace("|", "").replace(",", "")
+        if name:
+            cleaned.append(name)
+
     return ", ".join(cleaned)
 
 
@@ -889,7 +910,7 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
         log_func("  * **Tiempo RV (s):** Tiempo promedio global de reproducción del video (si aplica).")
         log_func("  * **% RV X%:** Porcentaje global de reproducciones de video que alcanzaron X% de su duración. Base: Impresiones (o Repr. 3s si > 0).")
         log_func("  * **CPM Stab U7 (%):** Estabilidad del Costo Por Mil Impresiones en los últimos 7 días para este Ad.")
-        log_func("  * **Públicos:** Públicos personalizados usados por el Ad (agregados si varían).");
+        log_func("  * **Públicos:** Públicos personalizados usados por el Ad (agregados si varían, separados por ',' ).");
         log_func("  ---")
     else: log_func("  No hay datos para Tabla Creatividad.")
     log_func("\n--- Fin Análisis Consolidado de Ads ---")
@@ -1002,6 +1023,7 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
         _format_dataframe_to_markdown(df_display,f"** Top {top_n} Ads por Gasto > ROAS (Global Acumulado) **",log_func,currency_cols=detected_currency, stability_cols=[], numeric_cols_for_alignment=num_cols)
     else: log_func(f"   No hay datos para mostrar en Top {top_n} Ads.");
     log_func("\n  **Detalle Top Ads Histórico:** Muestra los anuncios con mejor rendimiento histórico, ordenados por ROAS de mayor a menor. Todas las métricas son acumuladas globales.");
+    log_func("  * Nombres de Campaña, AdSet y Ad no contienen '|' ni ','; los públicos se muestran separados por ',' .");
     log_func("  ---")
 
 def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_days_total_ad_df, log_func, detected_currency, top_n=20):
@@ -1023,6 +1045,7 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
     log_func("\n  **Detalle Top Ads Bitácora:**")
     log_func("  * Tabla semanal con los anuncios con mayor ROAS y mayor número de impresiones.")
     log_func("  * Las columnas están separadas por ';' para facilitar la importación en hojas de cálculo.")
+    log_func("  * Nombres de Campaña, AdSet y Anuncio se muestran sin los caracteres '|', ','.")
     log_func("  ---")
 
 
@@ -1217,6 +1240,7 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
     log_func("\n  **Detalle Top AdSets Bitácora:**")
     log_func("  * Tabla semanal ordenada por ROAS y alcance de cada conjunto de anuncios.")
     log_func("  * Al exportar, las columnas se separan con ';' para su lectura en planillas.")
+    log_func("  * Nombres se muestran sin los caracteres '|', ',' y los públicos van separados por ',' .")
     log_func("  ---")
 
 
@@ -1239,6 +1263,7 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
     log_func("\n  **Detalle Top Campañas Bitácora:**")
     log_func("  * Ranking semanal de campañas ordenadas por ROAS y alcance.")
     log_func("  * Las columnas usan ';' como separador para su importación en hojas de cálculo.")
+    log_func("  * Los nombres de campaña no incluyen '|' ni ',' y los públicos se listan con coma.")
     log_func("  ---")
 
 
