@@ -167,6 +167,11 @@ def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
                         log_and_update(f"     !!! Error robust_numeric_conversion en '{col_num}': {e_num_conv}. Usando pd.to_numeric.");
                         df_renamed[col_num] = pd.to_numeric(df_renamed[col_num], errors='coerce')
             log_and_update("     Limpieza numérica OK.")
+
+            # If the total value column is missing, derive it from the average value
+            if 'value' not in df_renamed.columns and {'value_avg', 'purchases'}.issubset(df_renamed.columns):
+                log_and_update("     Columna 'value' no encontrada. Calculando a partir de 'value_avg' * 'purchases'.")
+                df_renamed['value'] = df_renamed['value_avg'] * df_renamed['purchases']
             
             def extract_ad_name_safe(txt):
                 """Clean ad name removing pipes and normalizing."""

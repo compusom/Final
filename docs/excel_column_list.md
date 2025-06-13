@@ -14,6 +14,7 @@ Entrega del anuncio
 Impresiones
 Alcance
 Frecuencia
+Valor de conversión de compras
 Valor de conversión de compras promedio
 Compras
 Visitas a la página de destino
