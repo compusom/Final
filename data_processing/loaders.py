@@ -183,7 +183,7 @@ def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
                         part = s.split('🆔')[-1].strip()
                         if part:
                             s = part
-                    items = _split_clean_items(s)
+                    items = _split_clean_items(s, remove_commas=True)
                     cleaned = ', '.join(items)
                     return normalize(cleaned)
                 except Exception as e_extract:
@@ -191,7 +191,7 @@ def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
                     return ""
 
             def clean_name_list(val):
-                items = _split_clean_items(val)
+                items = _split_clean_items(val, remove_commas=True)
                 return ', '.join(items)
 
             df_renamed['Campaign'] = (

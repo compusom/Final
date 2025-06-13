@@ -22,18 +22,16 @@ from config import numeric_internal_cols # Importar desde la raíz del proyecto
 from utils import aggregate_strings
 
 def _clean_audience_string(aud_str):
-    """Remove numeric prefixes and commas from audience names.
+    """Remove numeric prefixes from audience names and normalize separators.
 
     Audience strings may contain multiple audiences separated by either
-    ``|`` or `,`. Commas inside the actual audience names can lead to
-    confusion when several audiences are joined together. This helper
-    normalizes the string by:
+    ``|`` or `,`. This helper normalizes the string by:
 
     1. Splitting on ``|`` or `,` to detect individual audiences.
     2. Removing any leading numeric identifiers (``123:Name`` -> ``Name``).
-    3. Stripping commas from within each audience name.
-    4. Joining the cleaned parts using a comma so the output uses ``","``
-       only as a separator between distinct audience names.
+    3. Joining the cleaned parts using a comma so the output uses ``","``
+       only as a separator between distinct audience names. Commas inside
+       individual audience names are preserved.
     """
     if aud_str is None or str(aud_str).strip() == "-":
         return "-"
@@ -51,7 +49,7 @@ def _clean_audience_string(aud_str):
         if not p:
             continue
         name = re.sub(r"^\s*\d+\s*:\s*", "", p).strip()
-        name = name.replace(",", "").replace("|", "")
+        name = name.replace("|", "")
         if name:
             cleaned.append(name)
 
@@ -683,8 +681,8 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
         'rtime':'mean','frequency':'mean','cpm':'mean','ctr':'mean','ctr_out':'mean',
         'roas':'mean','cpa':'mean',
         'rv25_pct':'mean','rv75_pct':'mean','rv100_pct':'mean',
-        'Públicos In':lambda x:aggregate_strings(x,separator=', ',max_len=None),
-        'Públicos Ex':lambda x:aggregate_strings(x,separator=', ',max_len=None)
+        'Públicos In':lambda x:aggregate_strings(x,separator=', ',max_len=None, remove_commas=False),
+        'Públicos Ex':lambda x:aggregate_strings(x,separator=', ',max_len=None, remove_commas=False)
     }
     agg_dict_ad_global_available={k:v for k,v in agg_dict_base.items() if k in df_daily_agg_copy.columns} 
     if not agg_dict_ad_global_available: log_func("Adv: No hay columnas para agregación global Ads."); return
@@ -941,8 +939,8 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
         'impr':'sum','reach':'sum','rtime':'mean','rv3':'sum',
         'rv25':'sum','rv75':'sum','rv100':'sum','thruplays':'sum','puja':'mean',
         'url_final':lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos In': lambda x: aggregate_strings(x, separator=', ', max_len=None),
-        'Públicos Ex': lambda x: aggregate_strings(x, separator=', ', max_len=None)
+        'Públicos In': lambda x: aggregate_strings(x, separator=', ', max_len=None, remove_commas=False),
+        'Públicos Ex': lambda x: aggregate_strings(x, separator=', ', max_len=None, remove_commas=False)
     }
     agg_dict_available={k:v for k,v in agg_dict.items() if k in df_daily_agg_copy.columns} 
     if not agg_dict_available or 'spend' not in agg_dict_available or 'impr' not in agg_dict_available: 
@@ -1083,8 +1081,8 @@ def _generar_tabla_bitacora_top_entities(
         'rv3': 'sum', 'rv25': 'sum', 'rv75': 'sum', 'rv100': 'sum', 'rtime': 'mean',
         'puja': 'mean', 'interacciones': 'sum', 'comentarios': 'sum',
         'url_final': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos In': lambda x: aggregate_strings(x, separator=', ', max_len=None),
-        'Públicos Ex': lambda x: aggregate_strings(x, separator=', ', max_len=None),
+        'Públicos In': lambda x: aggregate_strings(x, separator=', ', max_len=None, remove_commas=False),
+        'Públicos Ex': lambda x: aggregate_strings(x, separator=', ', max_len=None, remove_commas=False),
     }
 
     period_metrics = {}
