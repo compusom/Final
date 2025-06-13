@@ -1133,7 +1133,11 @@ def _generar_tabla_bitacora_top_entities(
                 on=merge_cols,
                 how='left',
             )
-    ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
+    # Ensure the column exists before trying to fill NaNs to avoid AttributeError
+    if 'Días_Activo_Total' in ranking_df.columns:
+        ranking_df['Días_Activo_Total'] = ranking_df['Días_Activo_Total'].fillna(0).astype(int)
+    else:
+        ranking_df['Días_Activo_Total'] = 0
 
     if ranking_method == 'ads':
         ranking_df['roas'] = pd.to_numeric(ranking_df.get('roas'), errors='coerce').fillna(0)
