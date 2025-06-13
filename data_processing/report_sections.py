@@ -1159,27 +1159,6 @@ def _generar_tabla_bitacora_top_entities(
         log_func(f"\nNo hay datos para la semana actual. Top {entity_label} Bitácora omitido.")
         return
 
-    ranking_df = period_metrics[period_labels[0]].copy()
-    if active_days_df is not None and not active_days_df.empty:
-        merge_cols = [c for c in group_cols if c in active_days_df.columns]
-        if merge_cols:
-            dedup_active = active_days_df.drop_duplicates(subset=merge_cols)
-            ranking_df = pd.merge(
-                ranking_df,
-                dedup_active[merge_cols + ['Días_Activo_Total']],
-                on=merge_cols,
-                how='left',
-            )
-    # Ensure the column exists before trying to fill NaNs to avoid AttributeError
-    if 'Días_Activo_Total' in ranking_df.columns:
-        ranking_df['Días_Activo_Total'] = ranking_df['Días_Activo_Total'].fillna(0).astype(int)
-    else:
-        ranking_df['Días_Activo_Total'] = 0
-
-    ranking_df['roas'] = pd.to_numeric(ranking_df.get('roas'), errors='coerce').fillna(0)
-    ranking_df['impr'] = pd.to_numeric(ranking_df.get('impr'), errors='coerce').fillna(0)
-    ranking_df = ranking_df.sort_values(['roas', 'impr'], ascending=[False, False]).head(top_n)
-
     any_table = False
     display_map = {
         'Campaign': 'Campaña',
@@ -1192,33 +1171,45 @@ def _generar_tabla_bitacora_top_entities(
         if df_metrics is None or df_metrics.empty:
             continue
 
+        ranking_df = df_metrics.copy()
+        if active_days_df is not None and not active_days_df.empty:
+            merge_cols = [c for c in group_cols if c in active_days_df.columns]
+            if merge_cols:
+                dedup_active = active_days_df.drop_duplicates(subset=merge_cols)
+                ranking_df = pd.merge(
+                    ranking_df,
+                    dedup_active[merge_cols + ['Días_Activo_Total']],
+                    on=merge_cols,
+                    how='left',
+                )
+        if 'Días_Activo_Total' in ranking_df.columns:
+            ranking_df['Días_Activo_Total'] = ranking_df['Días_Activo_Total'].fillna(0).astype(int)
+        else:
+            ranking_df['Días_Activo_Total'] = 0
+
+        ranking_df['roas'] = pd.to_numeric(ranking_df.get('roas'), errors='coerce').fillna(0)
+        ranking_df['impr'] = pd.to_numeric(ranking_df.get('impr'), errors='coerce').fillna(0)
+        ranking_df = ranking_df.sort_values(['roas', 'impr'], ascending=[False, False]).head(top_n)
+
         table_rows = []
         for _, key_row in ranking_df.iterrows():
             dias_act = int(key_row.get('Días_Activo_Total', 0))
-            
-            sel = df_metrics
-            for col in group_cols:
-                sel = sel[sel[col] == key_row.get(col)]
-            if sel.empty:
-                metrics = {m: '-' for m in metric_labels}
-            else:
-                r_row = sel.iloc[0]
-                if 'active_days_period' in r_row:
-                    dias_act = int(r_row.get('active_days_period', dias_act))
-                base_metrics = {
-                    'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
-                    'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
-                    'Compras': fmt_int(r_row.get('purchases')),
-                    'Ventas': f"{detected_currency}{fmt_float(r_row.get('value'),2)}",
-                    'NCPA': f"{detected_currency}{fmt_float(safe_division(r_row.get('spend'), r_row.get('purchases')),2)}",
-                    'CVR': fmt_pct(safe_division_pct(r_row.get('purchases'), r_row.get('visits')),2),
-                    'AOV': f"{detected_currency}{fmt_float(safe_division(r_row.get('value'), r_row.get('purchases')),2)}",
-                    'Alcance': fmt_int(r_row.get('reach')),
-                    'Impresiones': fmt_int(r_row.get('impr')),
-                    'CTR': fmt_pct(r_row.get('ctr'),2),
-                    'Frecuencia': fmt_float(r_row.get('frequency'),2),
-                }
-                metrics = {k: base_metrics.get(k, '-') for k in metric_labels}
+            if 'active_days_period' in key_row:
+                dias_act = int(key_row.get('active_days_period', dias_act))
+            base_metrics = {
+                'ROAS': f"{fmt_float(key_row.get('roas'),2)}x",
+                'Inversión': f"{detected_currency}{fmt_float(key_row.get('spend'),2)}",
+                'Compras': fmt_int(key_row.get('purchases')),
+                'Ventas': f"{detected_currency}{fmt_float(key_row.get('value'),2)}",
+                'NCPA': f"{detected_currency}{fmt_float(safe_division(key_row.get('spend'), key_row.get('purchases')),2)}",
+                'CVR': fmt_pct(safe_division_pct(key_row.get('purchases'), key_row.get('visits')),2),
+                'AOV': f"{detected_currency}{fmt_float(safe_division(key_row.get('value'), key_row.get('purchases')),2)}",
+                'Alcance': fmt_int(key_row.get('reach')),
+                'Impresiones': fmt_int(key_row.get('impr')),
+                'CTR': fmt_pct(key_row.get('ctr'),2),
+                'Frecuencia': fmt_float(key_row.get('frequency'),2),
+            }
+            metrics = {k: base_metrics.get(k, '-') for k in metric_labels}
 
             row = {
                 display_map.get(col, col): _remove_commas(key_row.get(col, '-'))
