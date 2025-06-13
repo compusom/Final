@@ -17,10 +17,22 @@ def normalize(text):
     return s.lower().strip()
 
 def _split_clean_items(value):
-    """Split a string on ``|`` or `,` and remove those characters from each part."""
+    """Split audience or name strings on separators.
+
+    Besides splitting on ``|`` or `,` this helper also treats occurrences of a
+    numeric prefix followed by ``:`` (e.g. ``123:Name``) as delimiters. The
+    numeric portion is removed so only the clean name remains. Any stray ``|`` or
+    commas are stripped from the resulting parts.
+    """
     if value is None:
         return []
-    parts = re.split(r"\s*[|,]\s*", str(value))
+
+    s = str(value)
+    # Replace numeric prefixes like ``123:`` with a pipe so they work as
+    # separators when splitting below.
+    s = re.sub(r"(?:^|\s)\d+\s*:", "|", s)
+
+    parts = re.split(r"\s*[|,]\s*", s)
     cleaned = []
     for p in parts:
         name = p.strip().replace("|", "").replace(",", "")

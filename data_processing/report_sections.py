@@ -19,7 +19,7 @@ from formatting_utils import (
 )
 from .metric_calculators import _calcular_metricas_agregadas_y_estabilidad, _calculate_stability_pct # Nótese el .
 from config import numeric_internal_cols # Importar desde la raíz del proyecto
-from utils import aggregate_strings
+from utils import aggregate_strings, _split_clean_items
 
 def _clean_audience_string(aud_str):
     """Remove numeric prefixes and commas from audience names.
@@ -38,17 +38,8 @@ def _clean_audience_string(aud_str):
     if aud_str is None or str(aud_str).strip() == "-":
         return "-"
 
-    parts = re.split(r"\s*[|,]\s*", str(aud_str))
-    cleaned = []
-    for p in parts:
-        if not p:
-            continue
-        name = re.sub(r"^\s*\d+\s*:\s*", "", p).strip()
-        name = name.replace(",", "").replace("|", "")
-        if name:
-            cleaned.append(name)
-
-    return ", ".join(cleaned)
+    parts = _split_clean_items(aud_str)
+    return ", ".join(parts) if parts else "-"
 
 
 # Metric labels used in the Top tables
