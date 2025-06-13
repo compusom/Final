@@ -199,12 +199,24 @@ def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
 
             # MODIFICACIÓN para 'Públicos In' y 'Públicos Ex'
             if 'aud_in' in df_renamed.columns:
-                df_renamed['Públicos In'] = df_renamed['aud_in'].fillna('').astype(str).str.replace('|','').apply(normalize)
+                df_renamed['Públicos In'] = (
+                    df_renamed['aud_in']
+                    .fillna('')
+                    .astype(str)
+                    .str.replace('[|,]', '', regex=True)
+                    .apply(normalize)
+                )
             else:
                 df_renamed['Públicos In'] = pd.Series('', index=df_renamed.index, dtype=str).apply(normalize)
 
             if 'aud_ex' in df_renamed.columns:
-                df_renamed['Públicos Ex'] = df_renamed['aud_ex'].fillna('').astype(str).str.replace('|','').apply(normalize)
+                df_renamed['Públicos Ex'] = (
+                    df_renamed['aud_ex']
+                    .fillna('')
+                    .astype(str)
+                    .str.replace('[|,]', '', regex=True)
+                    .apply(normalize)
+                )
             else:
                 df_renamed['Públicos Ex'] = pd.Series('', index=df_renamed.index, dtype=str).apply(normalize)
 
