@@ -32,8 +32,8 @@ def _clean_audience_string(aud_str):
     1. Splitting on ``|`` or `,` to detect individual audiences.
     2. Removing any leading numeric identifiers (``123:Name`` -> ``Name``).
     3. Stripping commas from within each audience name.
-    4. Joining the cleaned parts using ``|`` so the output never contains
-       commas.
+    4. Joining the cleaned parts using a comma so the output uses ``","``
+       only as a separator between distinct audience names.
     """
     if aud_str is None or str(aud_str).strip() == "-":
         return "-"
@@ -44,11 +44,11 @@ def _clean_audience_string(aud_str):
         if not p:
             continue
         name = re.sub(r"^\s*\d+\s*:\s*", "", p).strip()
-        name = name.replace(",", "")  # remove commas from names
+        name = name.replace(",", "").replace("|", "")
         if name:
             cleaned.append(name)
 
-    return " | ".join(cleaned)
+    return ", ".join(cleaned)
 
 
 # Metric labels used in the Top tables
@@ -1090,6 +1090,14 @@ def _generar_tabla_bitacora_top_entities(
             period_metrics[label] = pd.DataFrame(columns=group_cols)
             continue
         df_g = df_p.groupby(group_cols, as_index=False, observed=False).agg({k: v for k, v in agg_dict.items() if k in df_p.columns})
+        # Calculate active days within the period for each entity
+        active_days = (
+            df_p.groupby(group_cols, as_index=False)['date']
+            .nunique()
+            .rename(columns={'date': 'active_days_period'})
+        )
+        if not active_days.empty:
+            df_g = pd.merge(df_g, active_days, on=group_cols, how='left')
         if not df_g.empty:
             s = df_g.get('spend', pd.Series(np.nan, index=df_g.index))
             v = df_g.get('value', pd.Series(np.nan, index=df_g.index))
@@ -1163,7 +1171,7 @@ def _generar_tabla_bitacora_top_entities(
         table_rows = []
         for _, key_row in ranking_df.iterrows():
             dias_act = int(key_row.get('Días_Activo_Total', 0))
-
+            
             sel = df_metrics
             for col in group_cols:
                 sel = sel[sel[col] == key_row.get(col)]
@@ -1171,6 +1179,8 @@ def _generar_tabla_bitacora_top_entities(
                 metrics = {m: '-' for m in metric_labels}
             else:
                 r_row = sel.iloc[0]
+                if 'active_days_period' in r_row:
+                    dias_act = int(r_row.get('active_days_period', dias_act))
                 base_metrics = {
                     'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
                     'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
