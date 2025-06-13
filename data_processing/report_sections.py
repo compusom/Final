@@ -31,6 +31,14 @@ def _clean_audience_string(aud_str):
     return " | ".join(cleaned)
 
 
+# Metric labels used in the Top tables
+METRIC_LABELS_BASE = [
+    'ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR',
+    'AOV', 'Alcance', 'Impresiones', 'CTR'
+]
+METRIC_LABELS_ADS = METRIC_LABELS_BASE + ['Frecuencia']
+
+
 # ============================================================
 # GENERACIÓN DE SECCIONES DEL REPORTE
 # ============================================================
@@ -999,11 +1007,44 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
 def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_days_total_ad_df, log_func, detected_currency, top_n=20):
     """Genera tablas por semana con los Top Ads ordenados por ROAS e impresiones."""
     group_cols = ['Campaign', 'AdSet', 'Anuncio']
+    _generar_tabla_bitacora_top_entities(
+        df_daily_agg,
+        bitacora_periods_list,
+        active_days_total_ad_df,
+        log_func,
+        detected_currency,
+        group_cols,
+        'Ads',
+        METRIC_LABELS_ADS,
+        ranking_method='ads',
+        top_n=top_n,
+    )
+
+    log_func("\n  **Detalle Top Ads Bitácora:**")
+    log_func("  * Tabla semanal con los anuncios con mayor ROAS y mayor número de impresiones.")
+    log_func("  * Las columnas están separadas por ';' para facilitar la importación en hojas de cálculo.")
+    log_func("  ---")
+
+
+def _generar_tabla_bitacora_top_entities(
+    df_daily_agg,
+    bitacora_periods_list,
+    active_days_df,
+    log_func,
+    detected_currency,
+    group_cols,
+    entity_label,
+    metric_labels,
+    ranking_method='reach',
+    top_n=20,
+    max_col_width=None,
+):
+    """Generic helper to build Top tables for Ads, AdSets or Campaigns."""
     if df_daily_agg is None or df_daily_agg.empty or 'date' not in df_daily_agg.columns:
-        log_func("\nNo hay datos diarios para Top Ads Bitácora.")
+        log_func(f"\nNo hay datos diarios para Top {entity_label} Bitácora.")
         return
     if not bitacora_periods_list:
-        log_func("\nNo se proporcionaron períodos para Top Ads Bitácora.")
+        log_func(f"\nNo se proporcionaron períodos para Top {entity_label} Bitácora.")
         return
 
     periods_to_use = bitacora_periods_list[:3]
@@ -1016,7 +1057,7 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
         'puja': 'mean', 'interacciones': 'sum', 'comentarios': 'sum',
         'url_final': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
         'Públicos In': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos Ex': lambda x: aggregate_strings(x, separator=' | ', max_len=None)
+        'Públicos Ex': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
     }
 
     period_metrics = {}
@@ -1028,7 +1069,7 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
         if df_p.empty:
             period_metrics[label] = pd.DataFrame(columns=group_cols)
             continue
-        df_g = df_p.groupby(group_cols, as_index=False, observed=False).agg({k:v for k,v in agg_dict.items() if k in df_p.columns})
+        df_g = df_p.groupby(group_cols, as_index=False, observed=False).agg({k: v for k, v in agg_dict.items() if k in df_p.columns})
         if not df_g.empty:
             s = df_g.get('spend', pd.Series(np.nan, index=df_g.index))
             v = df_g.get('value', pd.Series(np.nan, index=df_g.index))
@@ -1057,50 +1098,56 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
             df_g['ticket_promedio'] = safe_division(v, p)
         period_metrics[label] = df_g
 
-    if not period_metrics[period_labels[0]].empty:
-        ranking_df = period_metrics[period_labels[0]].copy()
-        if active_days_total_ad_df is not None and not active_days_total_ad_df.empty:
-            merge_cols = [c for c in group_cols if c in active_days_total_ad_df.columns]
-            if merge_cols:
-                ranking_df = pd.merge(
-                    ranking_df,
-                    active_days_total_ad_df[merge_cols + ['Días_Activo_Total']],
-                    on=merge_cols,
-                    how='left',
-                )
-        ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
+    if period_metrics[period_labels[0]].empty:
+        log_func(f"\nNo hay datos para la semana actual. Top {entity_label} Bitácora omitido.")
+        return
+
+    ranking_df = period_metrics[period_labels[0]].copy()
+    if active_days_df is not None and not active_days_df.empty:
+        merge_cols = [c for c in group_cols if c in active_days_df.columns]
+        if merge_cols:
+            dedup_active = active_days_df.drop_duplicates(subset=merge_cols)
+            ranking_df = pd.merge(
+                ranking_df,
+                dedup_active[merge_cols + ['Días_Activo_Total']],
+                on=merge_cols,
+                how='left',
+            )
+    ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
+
+    if ranking_method == 'ads':
         ranking_df['roas'] = pd.to_numeric(ranking_df.get('roas'), errors='coerce').fillna(0)
         ranking_df['impr'] = pd.to_numeric(ranking_df.get('impr'), errors='coerce').fillna(0)
         ranking_df = ranking_df.sort_values(['roas', 'impr'], ascending=[False, False]).head(top_n)
     else:
-        log_func("\nNo hay datos para la semana actual. Top Ads Bitácora omitido.")
-        return
+        ranking_df['rank_score'] = ranking_df['roas'] * ranking_df['reach']
+        ranking_df = ranking_df.sort_values('rank_score', ascending=False).head(top_n)
+        ranking_df.drop(columns='rank_score', inplace=True)
 
-
-    metric_labels = ['ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR', 'Frecuencia']
     any_table = False
+    display_map = {
+        'Campaign': 'Campaña',
+        'AdSet': 'AdSet',
+        'Anuncio': 'Anuncio',
+    }
 
     for label in period_labels:
         df_metrics = period_metrics.get(label)
         if df_metrics is None or df_metrics.empty:
             continue
+
         table_rows = []
         for _, key_row in ranking_df.iterrows():
-            camp = key_row.get('Campaign', '-')
-            adset = key_row.get('AdSet', '-')
-            ad = key_row.get('Anuncio', '-')
             dias_act = int(key_row.get('Días_Activo_Total', 0))
 
-            sel = df_metrics[
-                (df_metrics['Campaign'] == camp) &
-                (df_metrics['AdSet'] == adset) &
-                (df_metrics['Anuncio'] == ad)
-            ]
+            sel = df_metrics
+            for col in group_cols:
+                sel = sel[sel[col] == key_row.get(col)]
             if sel.empty:
                 metrics = {m: '-' for m in metric_labels}
             else:
                 r_row = sel.iloc[0]
-                metrics = {
+                base_metrics = {
                     'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
                     'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
                     'Compras': fmt_int(r_row.get('purchases')),
@@ -1113,174 +1160,59 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
                     'CTR': fmt_pct(r_row.get('ctr'),2),
                     'Frecuencia': fmt_float(r_row.get('frequency'),2),
                 }
+                metrics = {k: base_metrics.get(k, '-') for k in metric_labels}
 
             row = {
-                'Anuncio': ad,
-                'Campaña': camp,
-                'AdSet': adset,
-                'Días Act': dias_act,
-                'Públicos Incluidos': _clean_audience_string(key_row.get('Públicos In', '-')),
-                'Públicos Excluidos': _clean_audience_string(key_row.get('Públicos Ex', '-')),
+                display_map.get(col, col): key_row.get(col, '-') for col in group_cols
             }
+            row['Días Act'] = dias_act
+            if 'Públicos In' in key_row:
+                row['Públicos Incluidos'] = _clean_audience_string(key_row.get('Públicos In', '-'))
+            if 'Públicos Ex' in key_row:
+                row['Públicos Excluidos'] = _clean_audience_string(key_row.get('Públicos Ex', '-'))
             row.update(metrics)
             table_rows.append(row)
 
         if table_rows:
             df_display = pd.DataFrame(table_rows)
-            column_order = ['Anuncio','Campaña','AdSet','Días Act','Públicos Incluidos','Públicos Excluidos'] + metric_labels
+            base_cols = [display_map.get(c, c) for c in group_cols] + ['Días Act']
+            if 'Públicos Incluidos' in df_display.columns:
+                base_cols += ['Públicos Incluidos', 'Públicos Excluidos']
+            column_order = base_cols + metric_labels
             df_display = df_display[[c for c in column_order if c in df_display.columns]]
-            num_cols = [c for c in df_display.columns if c not in ['Anuncio','Campaña','AdSet','Públicos Incluidos','Públicos Excluidos']]
-            _format_dataframe_to_markdown(df_display, f"Top {top_n} Ads Bitácora - {label}", log_func, numeric_cols_for_alignment=num_cols)
+            df_display = df_display.drop_duplicates()
+            exclude = ['Públicos Incluidos', 'Públicos Excluidos'] + base_cols
+            num_cols = [c for c in df_display.columns if c not in exclude]
+            _format_dataframe_to_markdown(
+                df_display,
+                f"Top {top_n} {entity_label} Bitácora - {label}",
+                log_func,
+                numeric_cols_for_alignment=num_cols,
+                max_col_width=max_col_width,
+            )
             any_table = True
 
     if not any_table:
-        log_func("\nNo hay datos para Top Ads Bitácora.")
+        log_func(f"\nNo hay datos para Top {entity_label} Bitácora.")
 
-    log_func("\n  **Detalle Top Ads Bitácora:**")
-    log_func("  * Tabla semanal con los anuncios con mayor ROAS y mayor número de impresiones.")
-    log_func("  * Las columnas están separadas por ';' para facilitar la importación en hojas de cálculo.")
-    log_func("  ---")
 
 
 def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, active_days_total_adset_df, log_func, detected_currency, top_n=20):
     """Genera tablas por semana con los Top AdSets ordenados por ROAS y alcance."""
     group_cols = ['Campaign', 'AdSet']
-    if df_daily_agg is None or df_daily_agg.empty or 'date' not in df_daily_agg.columns:
-        log_func("\nNo hay datos diarios para Top AdSets Bitácora.")
-        return
-    if not bitacora_periods_list:
-        log_func("\nNo se proporcionaron períodos para Top AdSets Bitácora.")
-        return
-
-    periods_to_use = bitacora_periods_list[:3]
-    period_labels = [p[2] for p in periods_to_use]
-
-    agg_dict = {
-        'spend': 'sum', 'value': 'sum', 'purchases': 'sum', 'clicks': 'sum',
-        'clicks_out': 'sum', 'impr': 'sum', 'reach': 'sum', 'visits': 'sum',
-        'rv3': 'sum', 'rv25': 'sum', 'rv75': 'sum', 'rv100': 'sum', 'rtime': 'mean',
-        'Públicos In': lambda x: aggregate_strings(x, separator=' | ', max_len=None),
-        'Públicos Ex': lambda x: aggregate_strings(x, separator=' | ', max_len=None)
-    }
-
-    period_metrics = {}
-    for start_dt, end_dt, label in periods_to_use:
-        df_p = df_daily_agg[
-            (df_daily_agg['date'].dt.date >= start_dt.date()) &
-            (df_daily_agg['date'].dt.date <= end_dt.date())
-        ].copy()
-        if df_p.empty:
-            period_metrics[label] = pd.DataFrame(columns=group_cols)
-            continue
-        df_g = df_p.groupby(group_cols, as_index=False, observed=False).agg({k: v for k, v in agg_dict.items() if k in df_p.columns})
-        if not df_g.empty:
-            s = df_g.get('spend', pd.Series(np.nan, index=df_g.index))
-            v = df_g.get('value', pd.Series(np.nan, index=df_g.index))
-            p = df_g.get('purchases', pd.Series(np.nan, index=df_g.index))
-            c = df_g.get('clicks', pd.Series(np.nan, index=df_g.index))
-            co = df_g.get('clicks_out', pd.Series(np.nan, index=df_g.index))
-            i = df_g.get('impr', pd.Series(np.nan, index=df_g.index))
-            r = df_g.get('reach', pd.Series(np.nan, index=df_g.index))
-            vi = df_g.get('visits', pd.Series(np.nan, index=df_g.index))
-            rv3 = df_g.get('rv3', pd.Series(np.nan, index=df_g.index))
-            rv25 = df_g.get('rv25', pd.Series(np.nan, index=df_g.index))
-            rv75 = df_g.get('rv75', pd.Series(np.nan, index=df_g.index))
-            rv100 = df_g.get('rv100', pd.Series(np.nan, index=df_g.index))
-            df_g['roas'] = safe_division(v, s)
-            df_g['cpa'] = safe_division(s, p)
-            df_g['ctr'] = safe_division_pct(c, i)
-            df_g['ctr_out'] = safe_division_pct(co, i)
-            df_g['cpm'] = safe_division(s, i) * 1000
-            df_g['frequency'] = safe_division(i, r)
-            df_g['lpv_rate'] = safe_division_pct(vi, c)
-            df_g['purchase_rate'] = safe_division_pct(p, vi)
-            base_rv = np.where(pd.Series(rv3 > 0).fillna(False), rv3, i)
-            df_g['rv25_pct'] = safe_division_pct(rv25, base_rv)
-            df_g['rv75_pct'] = safe_division_pct(rv75, base_rv)
-            df_g['rv100_pct'] = safe_division_pct(rv100, base_rv)
-            df_g['ticket_promedio'] = safe_division(v, p)
-        period_metrics[label] = df_g
-
-    if not period_metrics[period_labels[0]].empty:
-        ranking_df = period_metrics[period_labels[0]].copy()
-        ranking_df['rank_score'] = ranking_df['roas'] * ranking_df['reach']
-        if active_days_total_adset_df is not None and not active_days_total_adset_df.empty:
-            merge_cols = [c for c in group_cols if c in active_days_total_adset_df.columns]
-            if merge_cols:
-                dedup_active = active_days_total_adset_df.drop_duplicates(subset=merge_cols)
-                ranking_df = pd.merge(
-                    ranking_df,
-                    dedup_active[merge_cols + ['Días_Activo_Total']],
-                    on=merge_cols,
-                    how='left',
-                )
-        ranking_df = ranking_df.sort_values('rank_score', ascending=False).head(top_n)
-        ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
-    else:
-        log_func("\nNo hay datos para la semana actual. Top AdSets Bitácora omitido.")
-        return
-
-    metric_labels = ['ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR']
-    any_table = False
-
-    for label in period_labels:
-        df_metrics = period_metrics.get(label)
-        if df_metrics is None or df_metrics.empty:
-            continue
-        table_rows = []
-        for _, key_row in ranking_df.iterrows():
-            camp = key_row.get('Campaign', '-')
-            adset = key_row.get('AdSet', '-')
-            dias_act = int(key_row.get('Días_Activo_Total', 0))
-
-            sel = df_metrics[
-                (df_metrics['Campaign'] == camp) &
-                (df_metrics['AdSet'] == adset)
-            ]
-            if sel.empty:
-                metrics = {m: '-' for m in metric_labels}
-            else:
-                r_row = sel.iloc[0]
-                metrics = {
-                    'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
-                    'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
-                    'Compras': fmt_int(r_row.get('purchases')),
-                    'Ventas': f"{detected_currency}{fmt_float(r_row.get('value'),2)}",
-                    'NCPA': f"{detected_currency}{fmt_float(safe_division(r_row.get('spend'), r_row.get('purchases')),2)}",
-                    'CVR': fmt_pct(safe_division_pct(r_row.get('purchases'), r_row.get('visits')),2),
-                    'AOV': f"{detected_currency}{fmt_float(safe_division(r_row.get('value'), r_row.get('purchases')),2)}",
-                    'Alcance': fmt_int(r_row.get('reach')),
-                    'Impresiones': fmt_int(r_row.get('impr')),
-                    'CTR': fmt_pct(r_row.get('ctr'),2),
-                }
-
-            row = {
-                'Campaña': camp,
-                'AdSet': adset,
-                'Días Act': dias_act,
-                'Públicos Incluidos': _clean_audience_string(key_row.get('Públicos In', '-')),
-                'Públicos Excluidos': _clean_audience_string(key_row.get('Públicos Ex', '-')),
-            }
-            row.update(metrics)
-            table_rows.append(row)
-
-        if table_rows:
-            df_display = pd.DataFrame(table_rows)
-            column_order = ['Campaña','AdSet','Días Act','Públicos Incluidos','Públicos Excluidos'] + metric_labels
-            df_display = df_display[[c for c in column_order if c in df_display.columns]]
-            df_display = df_display.drop_duplicates()
-            num_cols = [c for c in df_display.columns if c not in ['Campaña','AdSet','Públicos Incluidos','Públicos Excluidos']]
-            _format_dataframe_to_markdown(
-                df_display,
-                f"Top {top_n} AdSets Bitácora - {label}",
-                log_func,
-                numeric_cols_for_alignment=num_cols,
-                max_col_width=45,
-            )
-            any_table = True
-
-    if not any_table:
-        log_func("\nNo hay datos para Top AdSets Bitácora.")
+    _generar_tabla_bitacora_top_entities(
+        df_daily_agg,
+        bitacora_periods_list,
+        active_days_total_adset_df,
+        log_func,
+        detected_currency,
+        group_cols,
+        'AdSets',
+        METRIC_LABELS_BASE,
+        ranking_method='reach',
+        top_n=top_n,
+        max_col_width=45,
+    )
 
     log_func("\n  **Detalle Top AdSets Bitácora:**")
     log_func("  * Tabla semanal ordenada por ROAS y alcance de cada conjunto de anuncios.")
@@ -1291,120 +1223,18 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
 def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, active_days_total_campaign_df, log_func, detected_currency, top_n=10):
     """Genera tablas por semana con las Top Campañas ordenadas por ROAS y alcance."""
     group_cols = ['Campaign']
-    if df_daily_agg is None or df_daily_agg.empty or 'date' not in df_daily_agg.columns:
-        log_func("\nNo hay datos diarios para Top Campañas Bitácora.")
-        return
-    if not bitacora_periods_list:
-        log_func("\nNo se proporcionaron períodos para Top Campañas Bitácora.")
-        return
-
-    periods_to_use = bitacora_periods_list[:3]
-    period_labels = [p[2] for p in periods_to_use]
-
-    agg_dict = {
-        'spend': 'sum', 'value': 'sum', 'purchases': 'sum', 'clicks': 'sum',
-        'clicks_out': 'sum', 'impr': 'sum', 'reach': 'sum', 'visits': 'sum',
-        'rv3': 'sum', 'rv25': 'sum', 'rv75': 'sum', 'rv100': 'sum', 'rtime': 'mean'
-    }
-
-    period_metrics = {}
-    for start_dt, end_dt, label in periods_to_use:
-        df_p = df_daily_agg[
-            (df_daily_agg['date'].dt.date >= start_dt.date()) &
-            (df_daily_agg['date'].dt.date <= end_dt.date())
-        ].copy()
-        if df_p.empty:
-            period_metrics[label] = pd.DataFrame(columns=group_cols)
-            continue
-        df_g = df_p.groupby(group_cols, as_index=False, observed=False).agg({k: v for k, v in agg_dict.items() if k in df_p.columns})
-        if not df_g.empty:
-            s = df_g.get('spend', pd.Series(np.nan, index=df_g.index))
-            v = df_g.get('value', pd.Series(np.nan, index=df_g.index))
-            p = df_g.get('purchases', pd.Series(np.nan, index=df_g.index))
-            c = df_g.get('clicks', pd.Series(np.nan, index=df_g.index))
-            co = df_g.get('clicks_out', pd.Series(np.nan, index=df_g.index))
-            i = df_g.get('impr', pd.Series(np.nan, index=df_g.index))
-            r = df_g.get('reach', pd.Series(np.nan, index=df_g.index))
-            vi = df_g.get('visits', pd.Series(np.nan, index=df_g.index))
-            rv3 = df_g.get('rv3', pd.Series(np.nan, index=df_g.index))
-            rv25 = df_g.get('rv25', pd.Series(np.nan, index=df_g.index))
-            rv75 = df_g.get('rv75', pd.Series(np.nan, index=df_g.index))
-            rv100 = df_g.get('rv100', pd.Series(np.nan, index=df_g.index))
-            df_g['roas'] = safe_division(v, s)
-            df_g['cpa'] = safe_division(s, p)
-            df_g['ctr'] = safe_division_pct(c, i)
-            df_g['ctr_out'] = safe_division_pct(co, i)
-            df_g['cpm'] = safe_division(s, i) * 1000
-            df_g['frequency'] = safe_division(i, r)
-            df_g['lpv_rate'] = safe_division_pct(vi, c)
-            df_g['purchase_rate'] = safe_division_pct(p, vi)
-            base_rv = np.where(pd.Series(rv3 > 0).fillna(False), rv3, i)
-            df_g['rv25_pct'] = safe_division_pct(rv25, base_rv)
-            df_g['rv75_pct'] = safe_division_pct(rv75, base_rv)
-            df_g['rv100_pct'] = safe_division_pct(rv100, base_rv)
-            df_g['ticket_promedio'] = safe_division(v, p)
-        period_metrics[label] = df_g
-
-    if not period_metrics[period_labels[0]].empty:
-        ranking_df = period_metrics[period_labels[0]].copy()
-        ranking_df['rank_score'] = ranking_df['roas'] * ranking_df['reach']
-        if active_days_total_campaign_df is not None and not active_days_total_campaign_df.empty:
-            merge_cols = [c for c in group_cols if c in active_days_total_campaign_df.columns]
-            if merge_cols:
-                ranking_df = pd.merge(ranking_df, active_days_total_campaign_df[merge_cols + ['Días_Activo_Total']], on=merge_cols, how='left')
-        ranking_df = ranking_df.sort_values('rank_score', ascending=False).head(top_n)
-        ranking_df['Días_Activo_Total'] = ranking_df.get('Días_Activo_Total', 0).fillna(0).astype(int)
-    else:
-        log_func("\nNo hay datos para la semana actual. Top Campañas Bitácora omitido.")
-        return
-
-    metric_labels = ['ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR', 'AOV', 'Alcance', 'Impresiones', 'CTR']
-    any_table = False
-
-    for label in period_labels:
-        df_metrics = period_metrics.get(label)
-        if df_metrics is None or df_metrics.empty:
-            continue
-        table_rows = []
-        for _, key_row in ranking_df.iterrows():
-            camp = key_row.get('Campaign', '-')
-            dias_act = int(key_row.get('Días_Activo_Total', 0))
-
-            sel = df_metrics[df_metrics['Campaign'] == camp]
-            if sel.empty:
-                metrics = {m: '-' for m in metric_labels}
-            else:
-                r_row = sel.iloc[0]
-                metrics = {
-                    'ROAS': f"{fmt_float(r_row.get('roas'),2)}x",
-                    'Inversión': f"{detected_currency}{fmt_float(r_row.get('spend'),2)}",
-                    'Compras': fmt_int(r_row.get('purchases')),
-                    'Ventas': f"{detected_currency}{fmt_float(r_row.get('value'),2)}",
-                    'NCPA': f"{detected_currency}{fmt_float(safe_division(r_row.get('spend'), r_row.get('purchases')),2)}",
-                    'CVR': fmt_pct(safe_division_pct(r_row.get('purchases'), r_row.get('visits')),2),
-                    'AOV': f"{detected_currency}{fmt_float(safe_division(r_row.get('value'), r_row.get('purchases')),2)}",
-                    'Alcance': fmt_int(r_row.get('reach')),
-                    'Impresiones': fmt_int(r_row.get('impr')),
-                    'CTR': fmt_pct(r_row.get('ctr'),2),
-                }
-
-            row = {
-                'Campaña': camp,
-                'Días Act': dias_act,
-            }
-            row.update(metrics)
-            table_rows.append(row)
-
-        if table_rows:
-            df_display = pd.DataFrame(table_rows)
-            column_order = ['Campaña','Días Act'] + metric_labels
-            df_display = df_display[[c for c in column_order if c in df_display.columns]]
-            num_cols = [c for c in df_display.columns if c not in ['Campaña']]
-            _format_dataframe_to_markdown(df_display, f"Top {top_n} Campañas Bitácora - {label}", log_func, numeric_cols_for_alignment=num_cols)
-            any_table = True
-
-    if not any_table:
-        log_func("\nNo hay datos para Top Campañas Bitácora.")
+    _generar_tabla_bitacora_top_entities(
+        df_daily_agg,
+        bitacora_periods_list,
+        active_days_total_campaign_df,
+        log_func,
+        detected_currency,
+        group_cols,
+        'Campañas',
+        METRIC_LABELS_BASE,
+        ranking_method='reach',
+        top_n=top_n,
+    )
 
     log_func("\n  **Detalle Top Campañas Bitácora:**")
     log_func("  * Ranking semanal de campañas ordenadas por ROAS y alcance.")
