@@ -22,13 +22,33 @@ from config import numeric_internal_cols # Importar desde la raíz del proyecto
 from utils import aggregate_strings
 
 def _clean_audience_string(aud_str):
-    """Remove numeric prefixes from audience names and unify separators."""
+    """Remove numeric prefixes and commas from audience names.
+
+    Audience strings may contain multiple audiences separated by either
+    ``|`` or `,`. Commas inside the actual audience names can lead to
+    confusion when several audiences are joined together. This helper
+    normalizes the string by:
+
+    1. Splitting on ``|`` or `,` to detect individual audiences.
+    2. Removing any leading numeric identifiers (``123:Name`` -> ``Name``).
+    3. Stripping commas from within each audience name.
+    4. Joining the cleaned parts using ``|`` so the output never contains
+       commas.
+    """
     if aud_str is None or str(aud_str).strip() == "-":
         return "-"
-    # Split on '|' or ',' and strip whitespace
+
     parts = re.split(r"\s*[|,]\s*", str(aud_str))
-    cleaned = [re.sub(r"^\s*\d+\s*:\s*", "", p).strip() for p in parts if p]
-    return ", ".join(cleaned)
+    cleaned = []
+    for p in parts:
+        if not p:
+            continue
+        name = re.sub(r"^\s*\d+\s*:\s*", "", p).strip()
+        name = name.replace(",", "")  # remove commas from names
+        if name:
+            cleaned.append(name)
+
+    return " | ".join(cleaned)
 
 
 # Metric labels used in the Top tables
