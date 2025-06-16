@@ -65,5 +65,6 @@ This document lists the columns present in the imported Excel reports and how th
 | Presupuesto Adset | adset_budget | numeric | mapped via `norm_map` |
 | Objetivo | objective | string | mapped via `norm_map` |
 | Tipo de compra | purchase_type | string | mapped via `norm_map` |
+| Nivel de la entrega | delivery_level | string | mapped via `norm_map`; not used |
 
 Only the columns explicitly mapped in `norm_map` are processed. The rest are currently ignored by the data loaders.

@@ -71,7 +71,9 @@ METRIC_LABELS_BASE = [
     'AOV', 'Alcance', 'Impresiones', 'CTR',
     'Presupuesto Campaña', 'Presupuesto Adset', 'Objetivo', 'Tipo Compra', 'Estado Entrega'
 ]
-METRIC_LABELS_ADS = METRIC_LABELS_BASE + ['Frecuencia']
+METRIC_LABELS_ADS = METRIC_LABELS_BASE + [
+    'Frecuencia', 'RV25%', 'RV75%', 'RV100%', 'Tiempo RV (s)'
+]
 
 
 # ============================================================
@@ -1209,6 +1211,10 @@ def _generar_tabla_bitacora_top_entities(
                 'Impresiones': fmt_int(key_row.get('impr')),
                 'CTR': fmt_pct(key_row.get('ctr'),2),
                 'Frecuencia': fmt_float(key_row.get('frequency'),2),
+                'RV25%': fmt_pct(key_row.get('rv25_pct'),2),
+                'RV75%': fmt_pct(key_row.get('rv75_pct'),2),
+                'RV100%': fmt_pct(key_row.get('rv100_pct'),2),
+                'Tiempo RV (s)': f"{fmt_float(key_row.get('rtime'),1)}s",
                 'Presupuesto Campaña': f"{detected_currency}{fmt_float(key_row.get('campaign_budget'),2)}" if key_row.get('campaign_budget') is not None else '-',
                 'Presupuesto Adset': f"{detected_currency}{fmt_float(key_row.get('adset_budget'),2)}" if key_row.get('adset_budget') is not None else '-',
                 'Objetivo': key_row.get('objective','-'),
@@ -1296,6 +1302,126 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
     log_func("  * Ranking semanal de campañas ordenadas por ROAS.")
     log_func("  * Las columnas usan ';' como separador para su importación en hojas de cálculo.")
     log_func("  ---")
+
+
+def _generar_tabla_performance_publico(df_daily_agg, log_func, detected_currency, top_n=5):
+    """Construye tabla con métricas de rendimiento por público."""
+
+    log_func("\n\n============================================================")
+    log_func(f"===== Performance Público (Top {top_n}) =====")
+    log_func("============================================================")
+
+    if df_daily_agg is None or df_daily_agg.empty or 'Públicos In' not in df_daily_agg.columns:
+        log_func("No hay datos de públicos para analizar.")
+        return
+
+    df_aud = df_daily_agg.copy()
+    df_aud['publico'] = df_aud['Públicos In'].apply(_clean_audience_string)
+    df_aud['publico'] = df_aud['publico'].replace({'': '(Sin Público)', '-': '(Sin Público)'})
+
+    agg_cols = {col: 'sum' for col in ['spend', 'purchases', 'value', 'impr', 'clicks', 'reach'] if col in df_aud.columns}
+    if not agg_cols:
+        log_func("No hay columnas métricas para públicos.")
+        return
+
+    df_group = df_aud.groupby('publico', as_index=False).agg(agg_cols)
+
+    if 'value' in df_group.columns and 'spend' in df_group.columns:
+        df_group['roas'] = safe_division(df_group['value'], df_group['spend'])
+    if 'spend' in df_group.columns and 'impr' in df_group.columns:
+        df_group['cpm'] = safe_division(df_group['spend'], df_group['impr']) * 1000
+    if 'clicks' in df_group.columns and 'impr' in df_group.columns:
+        df_group['ctr'] = safe_division_pct(df_group['clicks'], df_group['impr'])
+    if 'spend' in df_group.columns and 'purchases' in df_group.columns:
+        df_group['cpa'] = safe_division(df_group['spend'], df_group['purchases'])
+
+    df_group = df_group.sort_values('spend', ascending=False).head(top_n)
+
+    rename_map = {
+        'publico': 'Público',
+        'spend': 'Spend',
+        'purchases': 'Compras',
+        'roas': 'ROAS',
+        'cpm': 'CPM',
+        'ctr': 'CTR',
+        'cpa': 'CPA',
+        'reach': 'Alcance',
+    }
+    df_disp = df_group.rename(columns=rename_map)
+    col_order = [c for c in ['Público','Spend','Compras','ROAS','CPM','CTR','CPA','Alcance'] if c in df_disp.columns]
+    df_disp = df_disp[col_order]
+
+    num_cols = [c for c in df_disp.columns if c != 'Público']
+    pct_cols = {'CTR': 2}
+    float_cols = {'ROAS': 2, 'CPM': 2}
+    currency_cols = {'Spend': detected_currency, 'CPA': detected_currency}
+
+    _format_dataframe_to_markdown(
+        df_disp,
+        f"TABLA: PERFORMANCE_PUBLICO",
+        log_func,
+        float_cols_fmt=float_cols,
+        pct_cols_fmt=pct_cols,
+        currency_cols=currency_cols,
+        int_cols=[c for c in df_disp.columns if c in ['Compras','Alcance']],
+        numeric_cols_for_alignment=num_cols,
+    )
+
+
+def _generar_tabla_tendencia_ratios(df_daily_total, bitacora_periods_list, log_func, period_type="Weeks"):
+    """Genera tabla de tendencia de ratios por periodo."""
+
+    header_label = 'Semana' if period_type == 'Weeks' else 'Mes'
+
+    log_func("\n\n============================================================")
+    log_func(f"===== Tendencia Ratios ({'Semanal' if period_type == 'Weeks' else 'Mensual'}) =====")
+    log_func("============================================================")
+
+    if df_daily_total is None or df_daily_total.empty or 'date' not in df_daily_total.columns:
+        log_func("No hay datos para calcular tendencias.")
+        return
+
+    metric_cols = ['clicks', 'impr', 'visits', 'addcart', 'checkout', 'purchases']
+    if not any(col in df_daily_total.columns for col in metric_cols):
+        log_func("No hay columnas suficientes para calcular ratios.")
+        return
+
+    rows = []
+    for start_dt, end_dt, label in bitacora_periods_list:
+        df_p = df_daily_total[
+            (df_daily_total['date'].dt.date >= start_dt.date()) &
+            (df_daily_total['date'].dt.date <= end_dt.date())
+        ]
+        clicks = df_p.get('clicks', pd.Series(dtype=float)).sum()
+        impr = df_p.get('impr', pd.Series(dtype=float)).sum()
+        visits = df_p.get('visits', pd.Series(dtype=float)).sum()
+        addcart = df_p.get('addcart', pd.Series(dtype=float)).sum()
+        checkout = df_p.get('checkout', pd.Series(dtype=float)).sum()
+        purchases = df_p.get('purchases', pd.Series(dtype=float)).sum()
+
+        ctr = safe_division_pct(clicks, impr)
+        cvr_lp_cart = safe_division_pct(addcart, visits)
+        cvr_cart_checkout = safe_division_pct(checkout, addcart)
+        cvr_checkout_purchase = safe_division_pct(purchases, checkout)
+
+        rows.append({
+            header_label: label,
+            'CTR': ctr,
+            'CVR LP→Cart': cvr_lp_cart,
+            'CVR Cart→Checkout': cvr_cart_checkout,
+            'CVR Checkout→Compra': cvr_checkout_purchase,
+        })
+
+    df_disp = pd.DataFrame(rows)
+    pct_cols = {c: 2 for c in df_disp.columns if c != header_label}
+
+    _format_dataframe_to_markdown(
+        df_disp,
+        f"TABLA: TENDENCIA_RATIOS",
+        log_func,
+        pct_cols_fmt=pct_cols,
+        numeric_cols_for_alignment=list(pct_cols.keys()),
+    )
 
 
 def _generar_tabla_bitacora_entidad(entity_level, entity_name, df_daily_entity,

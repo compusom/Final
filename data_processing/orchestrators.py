@@ -25,7 +25,8 @@ from .report_sections import (
     _generar_tabla_embudo_rendimiento, _generar_tabla_embudo_bitacora,
     _generar_analisis_ads, _generar_tabla_top_ads_historico,
     _generar_tabla_bitacora_entidad, _generar_tabla_bitacora_top_ads,
-    _generar_tabla_bitacora_top_adsets, _generar_tabla_bitacora_top_campaigns
+    _generar_tabla_bitacora_top_adsets, _generar_tabla_bitacora_top_campaigns,
+    _generar_tabla_performance_publico, _generar_tabla_tendencia_ratios
 )
 
 # Importaciones de módulos en la raíz del proyecto
@@ -87,9 +88,10 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
             active_days_adset = active_days_results.get('AdSet',pd.DataFrame())
             active_days_ad = active_days_results.get('Anuncio',pd.DataFrame())
             
-            last_day_status_lookup=pd.DataFrame(); max_date_global=None
+            last_day_status_lookup=pd.DataFrame(); max_date_global=None; min_date_global=None
             if not df_combined.empty and 'date' in df_combined.columns and pd.api.types.is_datetime64_any_dtype(df_combined['date']) and not df_combined['date'].dropna().empty:
                 max_date_global = df_combined['date'].max()
+                min_date_global = df_combined['date'].min()
                 if pd.notna(max_date_global):
                     status_cols=['ad_delivery_status','adset_delivery_status','campaign_delivery_status', 'entrega']
                     group_cols=['Campaign','AdSet','Anuncio']
@@ -187,6 +189,18 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
             else: log("  No se generaron mensajes de resumen.")
             log("============================================================")
             log("\n\n--- FIN DEL REPORTE RENDIMIENTO ---",importante=True); status_queue.put("---DONE---")
+
+            try:
+                if max_date_global is not None and min_date_global is not None:
+                    start_label = min_date_global.strftime('%Y%m%d')
+                    end_label = max_date_global.strftime('%Y%m%d')
+                    base, ext = os.path.splitext(output_filename)
+                    new_name = f"{base}_{start_label}-{end_label}{ext}"
+                    new_path = os.path.join(output_dir, new_name)
+                    os.replace(output_path, new_path)
+                    log(f"Archivo renombrado a {new_name}")
+            except Exception as ren_err:
+                log(f"Adv: no se pudo renombrar archivo: {ren_err}")
     except Exception as e_main:
         error_details=traceback.format_exc(); log_msg=f"!!! Error Fatal General Reporte Rendimiento: {e_main} !!!\n{error_details}";
         log(log_msg,importante=True)
@@ -488,12 +502,26 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
             _generar_tabla_bitacora_top_ads(df_daily_agg_full, bitacora_periods_list, active_days_ad, log, detected_currency, top_n=20)
             _generar_tabla_bitacora_top_adsets(df_daily_agg_full, bitacora_periods_list, active_days_adset, log, detected_currency)
             _generar_tabla_bitacora_top_campaigns(df_daily_agg_full, bitacora_periods_list, active_days_campaign, log, detected_currency)
+            _generar_tabla_performance_publico(df_daily_agg_full, log, detected_currency, top_n=5)
+            _generar_tabla_tendencia_ratios(df_daily_total_for_bitacora, bitacora_periods_list, log, period_type=bitacora_comparison_type)
 
             log("\n\n============================================================");log(f"===== Resumen del Proceso (Bitácora {bitacora_comparison_type}) =====");log("============================================================")
             if log_summary_messages_orchestrator: [log(f"  - {re.sub(r'^\s*\[\d{2}:\d{2}:\d{2}\]\s*','',msg).strip().replace('---','-')}") for msg in log_summary_messages_orchestrator if re.sub(r'^\s*\[\d{2}:\d{2}:\d{2}\]\s*','',msg).strip()]
             else: log("  No se generaron mensajes de resumen.")
             log("============================================================")
             log(f"\n\n--- FIN DEL REPORTE BITÁCORA ({bitacora_comparison_type}) ---", importante=True); status_queue.put("---DONE---")
+
+            try:
+                if bitacora_periods_list:
+                    start_label = bitacora_periods_list[0][0].strftime('%Y%m%d')
+                    end_label = bitacora_periods_list[0][1].strftime('%Y%m%d')
+                    base, ext = os.path.splitext(output_filename)
+                    new_name = f"{base}_{start_label}-{end_label}{ext}"
+                    new_path = os.path.join(output_dir, new_name)
+                    os.replace(output_path, new_path)
+                    log(f"Archivo renombrado a {new_name}")
+            except Exception as ren_err:
+                log(f"Adv: no se pudo renombrar archivo: {ren_err}")
 
     except Exception as e_main_bitacora:
         error_details = traceback.format_exc()
