@@ -1,6 +1,7 @@
-# Excel Column Names
+# Excel Column Names (Bitacora)
 
-This list records the exact column names present in the example file `Informe-Maran-IA (11).xlsx`. Future datasets should provide the same or similar columns. Accents and punctuation are kept as in the file to avoid ambiguities.
+This list records the column names from the file `Informe-Bitacora-FINAL (1).xlsx`.
+They appear in the order provided by that document.
 
 ```
 Nombre de la campaña
@@ -14,7 +15,6 @@ Entrega del anuncio
 Impresiones
 Alcance
 Frecuencia
-Valor de conversión de compras
 Valor de conversión de compras promedio
 Compras
 Visitas a la página de destino
@@ -57,12 +57,11 @@ Divisa
 Atencion
 Deseo
 Interes
-Inicio del informe
-Fin del informe
+Valor de conversión de compras
 Estado de la entrega
-presupuesto Campaña
-Presupuesto Adset
+Nivel de la entrega
 Objetivo
 Tipo de compra
-Nivel de la entrega
+Inicio del informe
+Fin del informe
 ```
