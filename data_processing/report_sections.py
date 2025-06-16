@@ -68,7 +68,8 @@ def _remove_commas(text):
 # Metric labels used in the Top tables
 METRIC_LABELS_BASE = [
     'ROAS', 'Inversión', 'Compras', 'Ventas', 'NCPA', 'CVR',
-    'AOV', 'Alcance', 'Impresiones', 'CTR'
+    'AOV', 'Alcance', 'Impresiones', 'CTR',
+    'Presupuesto Campaña', 'Presupuesto Adset', 'Objetivo', 'Tipo Compra', 'Estado Entrega'
 ]
 METRIC_LABELS_ADS = METRIC_LABELS_BASE + ['Frecuencia']
 
@@ -1208,6 +1209,11 @@ def _generar_tabla_bitacora_top_entities(
                 'Impresiones': fmt_int(key_row.get('impr')),
                 'CTR': fmt_pct(key_row.get('ctr'),2),
                 'Frecuencia': fmt_float(key_row.get('frequency'),2),
+                'Presupuesto Campaña': f"{detected_currency}{fmt_float(key_row.get('campaign_budget'),2)}" if key_row.get('campaign_budget') is not None else '-',
+                'Presupuesto Adset': f"{detected_currency}{fmt_float(key_row.get('adset_budget'),2)}" if key_row.get('adset_budget') is not None else '-',
+                'Objetivo': key_row.get('objective','-'),
+                'Tipo Compra': key_row.get('purchase_type','-'),
+                'Estado Entrega': key_row.get('delivery_general_status','-'),
             }
             metrics = {k: base_metrics.get(k, '-') for k in metric_labels}
 
@@ -1363,16 +1369,21 @@ def _generar_tabla_bitacora_entidad(entity_level, entity_name, df_daily_entity,
         'CPM': {'display':'CPM', 'formatter': lambda x: f"{detected_currency}{fmt_float(x, 2)}"},
         'Clics': {'display':'Clics (Link)', 'formatter': fmt_int},
         'CTR': {'display':'CTR (Link) %', 'formatter': lambda x: fmt_pct(x, 2)},
-        'Clics Salientes': {'display':'Clics (Out)', 'formatter': fmt_int}, 
-        'CTR Saliente': {'display':'CTR (Out) %', 'formatter': lambda x: fmt_pct(x, 2)}, 
+        'Clics Salientes': {'display':'Clics (Out)', 'formatter': fmt_int},
+        'CTR Saliente': {'display':'CTR (Out) %', 'formatter': lambda x: fmt_pct(x, 2)},
         'Visitas': {'display':'Visitas LP', 'formatter': fmt_int},
         'LVP_Rate_%': {'display':'Tasa Visita LP %', 'formatter': lambda x: fmt_pct(x, 1)},
         'Conv_Rate_%': {'display':'Tasa Compra %', 'formatter': lambda x: fmt_pct(x, 1)},
-        'Tiempo_Promedio': {'display':'Tiempo RV (s)', 'formatter': lambda x: fmt_float(x,1)}, 
+        'Tiempo_Promedio': {'display':'Tiempo RV (s)', 'formatter': lambda x: fmt_float(x,1)},
         'RV25_%': {'display': 'RV 25%','formatter': lambda x: fmt_pct(x, 1)},
         'RV75_%': {'display': 'RV 75%','formatter': lambda x: fmt_pct(x, 1)},
         'RV100_%': {'display': 'RV 100%','formatter': lambda x: fmt_pct(x, 1)},
-        'ROAS_Stability_%': {'display':'Est. ROAS %', 'formatter':fmt_stability}, 
+        'Presupuesto_Campana': {'display':'Presup. Campaña', 'formatter': lambda x: f"{detected_currency}{fmt_float(x,2)}"},
+        'Presupuesto_Adset': {'display':'Presup. Adset', 'formatter': lambda x: f"{detected_currency}{fmt_float(x,2)}"},
+        'Objetivo': {'display':'Objetivo', 'formatter': lambda x: str(x) if pd.notna(x) else '-'},
+        'Tipo_Compra': {'display':'Tipo Compra', 'formatter': lambda x: str(x) if pd.notna(x) else '-'},
+        'Estado_Entrega': {'display':'Estado Entrega', 'formatter': lambda x: str(x) if pd.notna(x) else '-'},
+        'ROAS_Stability_%': {'display':'Est. ROAS %', 'formatter':fmt_stability},
         'CPA_Stability_%': {'display':'Est. CPA %', 'formatter':fmt_stability},
         'CPM_Stability_%': {'display':'Est. CPM %', 'formatter':fmt_stability},
         'CTR_Stability_%': {'display':'Est. CTR %', 'formatter':fmt_stability},
@@ -1382,9 +1393,10 @@ def _generar_tabla_bitacora_entidad(entity_level, entity_name, df_daily_entity,
     order = [ 
         'Inversion', 'Ventas_Totales', 'ROAS', 'Compras', 'CPA', 'Ticket_Promedio',
         'Impresiones', 'Alcance', 'Frecuencia', 'CPM',
-        'Clics', 'CTR', 'Clics Salientes', 'CTR Saliente', 'Visitas', 'LVP_Rate_%', 'Conv_Rate_%', 
-        'Tiempo_Promedio', 'RV25_%', 'RV75_%', 'RV100_%', 
-        'ROAS_Stability_%', 'CPA_Stability_%', 'CPM_Stability_%', 'CTR_Stability_%', 'IMPR_Stability_%', 'CTR_DIV_FREQ_RATIO_Stability_%' 
+        'Presupuesto_Campana', 'Presupuesto_Adset', 'Objetivo', 'Tipo_Compra', 'Estado_Entrega',
+        'Clics', 'CTR', 'Clics Salientes', 'CTR Saliente', 'Visitas', 'LVP_Rate_%', 'Conv_Rate_%',
+        'Tiempo_Promedio', 'RV25_%', 'RV75_%', 'RV100_%',
+        'ROAS_Stability_%', 'CPA_Stability_%', 'CPM_Stability_%', 'CTR_Stability_%', 'IMPR_Stability_%', 'CTR_DIV_FREQ_RATIO_Stability_%'
     ]
     headers = ["Métrica"] + period_labels_for_table 
     rows = []

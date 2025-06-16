@@ -42,6 +42,10 @@ def _agregar_datos_diarios(df_combined, status_queue, selected_adsets=None):
             'visits':'sum','clicks_out':'sum', 'rv3':'sum','rv25':'sum','rv75':'sum','rv100':'sum',
             'attention':'sum','interest':'sum','deseo':'sum','addcart':'sum','checkout':'sum',
             'rtime':'mean','freq':'mean',
+            'campaign_budget':'mean','adset_budget':'mean',
+            'objective':lambda x:aggregate_strings(x,separator=' | ',max_len=None),
+            'purchase_type':lambda x:aggregate_strings(x,separator=' | ',max_len=None),
+            'delivery_general_status':lambda x:aggregate_strings(x,separator='|',max_len=50),
             'Públicos In':lambda x:aggregate_strings(x,separator=', ',max_len=None),
             'Públicos Ex':lambda x:aggregate_strings(x,separator=', ',max_len=None),
             'Entrega':lambda x:aggregate_strings(x,separator='|',max_len=50)

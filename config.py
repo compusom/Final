@@ -78,6 +78,11 @@ norm_map = {
         normalize('Post comments'),
         normalize('Comentarios'),  # nombre corto
     ],
+    'delivery_general_status': [normalize('Estado de la entrega')],
+    'campaign_budget': [normalize('presupuesto Campaña'), normalize('Presupuesto de la campaña')],
+    'adset_budget': [normalize('Presupuesto Adset'), normalize('Presupuesto del conjunto de anuncios')],
+    'objective': [normalize('Objetivo'), normalize('Objective')],
+    'purchase_type': [normalize('Tipo de compra')],
 }
 
 numeric_internal_cols = [
@@ -90,6 +95,7 @@ numeric_internal_cols = [
     'value', 'value_avg', 'roas', 'cpa', 'ncpa', 'aov', 'cvr',
     'rv3', 'rv25', 'rv75', 'rv100', 'rtime' # Video
     ,'thruplays','puja','interacciones','comentarios'
+    ,'campaign_budget','adset_budget'
 ]
 
 # Símbolos de moneda preferidos (puedes expandir esto)

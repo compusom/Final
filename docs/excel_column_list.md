@@ -59,4 +59,9 @@ Deseo
 Interes
 Inicio del informe
 Fin del informe
+Estado de la entrega
+presupuesto Campaña
+Presupuesto Adset
+Objetivo
+Tipo de compra
 ```
