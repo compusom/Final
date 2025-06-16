@@ -7,6 +7,8 @@ from data_processing.report_sections import (
     _generar_tabla_bitacora_top_entities,
     METRIC_LABELS_ADS,
     METRIC_LABELS_BASE,
+    _generar_tabla_performance_publico,
+    _generar_tabla_tendencia_ratios
 )
 from data_processing.report_sections import _clean_audience_string
 
@@ -208,4 +210,41 @@ def test_generic_helper_ads(capsys):
     )
     output = "\n".join(logs)
     assert 'Top 1 Ads Bitácora - Semana actual' in output
+
+
+def test_performance_publico_table():
+    df = pd.DataFrame({
+        'Públicos In': ['Aud1', 'Aud1', 'Aud2'],
+        'spend': [10, 15, 5],
+        'purchases': [1, 2, 0],
+        'value': [20, 40, 0],
+        'impr': [100, 200, 50],
+        'clicks': [5, 10, 2],
+        'reach': [80, 150, 30],
+        'date': pd.to_datetime(['2024-06-01', '2024-06-02', '2024-06-01']),
+    })
+    logs = []
+    _generar_tabla_performance_publico(df, logs.append, '$', top_n=2)
+    output = "\n".join(logs)
+    assert 'TABLA: PERFORMANCE_PUBLICO' in output
+
+
+def test_tendencia_ratios_weekly():
+    df = pd.DataFrame({
+        'date': pd.to_datetime(['2024-06-01', '2024-06-02', '2024-05-26']),
+        'clicks': [10, 5, 4],
+        'impr': [100, 80, 50],
+        'visits': [20, 15, 10],
+        'addcart': [5, 3, 2],
+        'checkout': [2, 1, 1],
+        'purchases': [1, 0, 1],
+    })
+    periods = [
+        (datetime(2024, 6, 1), datetime(2024, 6, 2), 'Semana actual'),
+        (datetime(2024, 5, 26), datetime(2024, 5, 26), '1ª semana anterior'),
+    ]
+    logs = []
+    _generar_tabla_tendencia_ratios(df, periods, logs.append, period_type='Weeks')
+    output = "\n".join(logs)
+    assert 'TABLA: TENDENCIA_RATIOS' in output
 
