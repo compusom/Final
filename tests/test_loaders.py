@@ -39,3 +39,18 @@ def test_new_columns_mapping(tmp_path):
     for col in ['delivery_general_status','campaign_budget','adset_budget','objective','purchase_type']:
         assert col in result.columns
 
+
+def test_delivery_level_mapping(tmp_path):
+    df = pd.DataFrame({
+        'Día': ['2025-06-01', '2025-06-02'],
+        'Nombre de la campaña': ['Camp', 'Camp'],
+        'Nombre del conjunto de anuncios': ['Set', 'Set'],
+        'Nivel de la entrega': ['Ad', 'Ad'],
+    })
+    file_path = tmp_path / 'data3.xlsx'
+    df.to_excel(file_path, index=False)
+
+    q = queue.SimpleQueue()
+    result, _, _ = _cargar_y_preparar_datos([str(file_path)], q, '__ALL__')
+    assert 'delivery_level' in result.columns
+

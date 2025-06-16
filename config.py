@@ -83,6 +83,7 @@ norm_map = {
     'adset_budget': [normalize('Presupuesto Adset'), normalize('Presupuesto del conjunto de anuncios')],
     'objective': [normalize('Objetivo'), normalize('Objective')],
     'purchase_type': [normalize('Tipo de compra')],
+    'delivery_level': [normalize('Nivel de la entrega')],
 }
 
 numeric_internal_cols = [
