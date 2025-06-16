@@ -71,7 +71,9 @@ METRIC_LABELS_BASE = [
     'AOV', 'Alcance', 'Impresiones', 'CTR',
     'Presupuesto Campaña', 'Presupuesto Adset', 'Objetivo', 'Tipo Compra', 'Estado Entrega'
 ]
-METRIC_LABELS_ADS = METRIC_LABELS_BASE + ['Frecuencia']
+METRIC_LABELS_ADS = METRIC_LABELS_BASE + [
+    'Frecuencia', 'RV25%', 'RV75%', 'RV100%', 'Tiempo RV (s)'
+]
 
 
 # ============================================================
@@ -1209,6 +1211,10 @@ def _generar_tabla_bitacora_top_entities(
                 'Impresiones': fmt_int(key_row.get('impr')),
                 'CTR': fmt_pct(key_row.get('ctr'),2),
                 'Frecuencia': fmt_float(key_row.get('frequency'),2),
+                'RV25%': fmt_pct(key_row.get('rv25_pct'),2),
+                'RV75%': fmt_pct(key_row.get('rv75_pct'),2),
+                'RV100%': fmt_pct(key_row.get('rv100_pct'),2),
+                'Tiempo RV (s)': f"{fmt_float(key_row.get('rtime'),1)}s",
                 'Presupuesto Campaña': f"{detected_currency}{fmt_float(key_row.get('campaign_budget'),2)}" if key_row.get('campaign_budget') is not None else '-',
                 'Presupuesto Adset': f"{detected_currency}{fmt_float(key_row.get('adset_budget'),2)}" if key_row.get('adset_budget') is not None else '-',
                 'Objetivo': key_row.get('objective','-'),
