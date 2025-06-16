@@ -64,4 +64,5 @@ presupuesto Campaña
 Presupuesto Adset
 Objetivo
 Tipo de compra
+Nivel de la entrega
 ```
