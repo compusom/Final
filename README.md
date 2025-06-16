@@ -60,6 +60,8 @@ desired number of months.
 
 Generated reports are plain text files where tables use a semicolon (`;`) as the delimiter for each cell. This ensures data can be imported directly into spreadsheet tools. See `docs/report_format.md` for details.
 
+Recent updates add support for extra fields such as campaign and ad set budgets, objectives and purchase types. These appear in the bitácora tables if present in the source files.
+
 ## Contributing
 
 Pull requests that introduce useful scripts, improve documentation, or help define the project structure are welcome. Feel free to open issues to discuss ideas or report problems.

@@ -70,7 +70,7 @@ def _calculate_stability_pct(series):
 
 def _calcular_metricas_agregadas_y_estabilidad(df_period, period_identifier, log_func):
     """Aggregate metrics for a period and compute stability indicators."""
-    results={'is_complete':False};keys=['Alcance','Impresiones','Frecuencia','Inversion','CPM','Compras','Clics','Visitas','CPA','CTR','Ventas_Totales','ROAS','Ticket_Promedio','Tiempo_Promedio','LVP_Rate_%','Conv_Rate_%','RV25_%','RV75_%','RV100_%','ROAS_Stability_%','CPA_Stability_%','CPM_Stability_%','CTR_Stability_%','IMPR_Stability_%','CTR_DIV_FREQ_RATIO_Stability_%','Clics Salientes','CTR Saliente']
+    results={'is_complete':False};keys=['Alcance','Impresiones','Frecuencia','Inversion','CPM','Compras','Clics','Visitas','CPA','CTR','Ventas_Totales','ROAS','Ticket_Promedio','Tiempo_Promedio','LVP_Rate_%','Conv_Rate_%','RV25_%','RV75_%','RV100_%','ROAS_Stability_%','CPA_Stability_%','CPM_Stability_%','CTR_Stability_%','IMPR_Stability_%','CTR_DIV_FREQ_RATIO_Stability_%','Clics Salientes','CTR Saliente','Presupuesto_Campana','Presupuesto_Adset','Objetivo','Tipo_Compra','Estado_Entrega']
     for k in keys: results[k]=np.nan
     if df_period is None or df_period.empty or 'date' not in df_period.columns or df_period['date'].dropna().empty:
         results['date_range'] = 'Datos insuficientes'
@@ -100,8 +100,16 @@ def _calcular_metricas_agregadas_y_estabilidad(df_period, period_identifier, log
             else:
                 results['is_complete'] = (n_days >= 7) # Fallback if period_identifier tuple is not dates
 
-    cols_sum=['spend','value','purchases','clicks','impr','reach','visits','rv25','rv75','rv100','clicks_out', 'attention','interest','deseo','addcart','checkout'];agg={}
-    for c_col in cols_sum: agg[c_col]=df_period[c_col].sum(skipna=True) if c_col in df_period.columns else 0
+    cols_sum=['spend','value','purchases','clicks','impr','reach','visits','rv25','rv75','rv100','clicks_out', 'attention','interest','deseo','addcart','checkout']
+    agg={}
+    for c_col in cols_sum:
+        agg[c_col]=df_period[c_col].sum(skipna=True) if c_col in df_period.columns else 0
+    for c_mean in ['campaign_budget','adset_budget']:
+        if c_mean in df_period.columns:
+            agg[c_mean]=pd.to_numeric(df_period[c_mean], errors='coerce').mean()
+    for c_text in ['objective','purchase_type','delivery_general_status']:
+        if c_text in df_period.columns:
+            agg[c_text]=aggregate_strings(df_period[c_text], separator=' | ', max_len=None)
     agg['frequency']=safe_division(agg.get('impr',0),agg.get('reach',0));
     agg['cpm']=safe_division(agg.get('spend',0),agg.get('impr',0))*1000;
     agg['cpa']=safe_division(agg.get('spend',0),agg.get('purchases',0));
@@ -118,7 +126,7 @@ def _calcular_metricas_agregadas_y_estabilidad(df_period, period_identifier, log
     agg['rv100_pct']=safe_division_pct(agg.get('rv100',0),base_rv_sum)
     agg['rtime']=df_period['rtime'].mean(skipna=True) if 'rtime' in df_period.columns else np.nan
 
-    map_agg={'reach':'Alcance','impr':'Impresiones','frequency':'Frecuencia','spend':'Inversion','cpm':'CPM','purchases':'Compras','clicks':'Clics','clicks_out':'Clics Salientes','visits':'Visitas','cpa':'CPA','ctr':'CTR','ctr_out':'CTR Saliente','value':'Ventas_Totales','roas':'ROAS','ticket_promedio':'Ticket_Promedio','rtime':'Tiempo_Promedio','lpv_rate':'LVP_Rate_%','purchase_rate':'Conv_Rate_%','rv25_pct':'RV25_%','rv75_pct':'RV75_%','rv100_pct':'RV100_%'}
+    map_agg={'reach':'Alcance','impr':'Impresiones','frequency':'Frecuencia','spend':'Inversion','cpm':'CPM','purchases':'Compras','clicks':'Clics','clicks_out':'Clics Salientes','visits':'Visitas','cpa':'CPA','ctr':'CTR','ctr_out':'CTR Saliente','value':'Ventas_Totales','roas':'ROAS','ticket_promedio':'Ticket_Promedio','rtime':'Tiempo_Promedio','lpv_rate':'LVP_Rate_%','purchase_rate':'Conv_Rate_%','rv25_pct':'RV25_%','rv75_pct':'RV75_%','rv100_pct':'RV100_%','campaign_budget':'Presupuesto_Campana','adset_budget':'Presupuesto_Adset','objective':'Objetivo','purchase_type':'Tipo_Compra','delivery_general_status':'Estado_Entrega'}
     for ik,ok in map_agg.items():
         if ik in agg: results[ok]=agg[ik]
 
