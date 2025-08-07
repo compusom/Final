@@ -57,13 +57,18 @@ def find_date_column_name(file_path):
             if not lines_f or not any(ln.strip() for ln in lines_f): return None
             sniffer = csv.Sniffer()
             hdr = next((ln for ln in lines_f if ln.strip()), None)
-            if not hdr: return None
-            common = [",", ";", "\t", "|"]
+
+            if not hdr:
+                return None
+
             try:
                 dialect = sniffer.sniff(hdr, delimiters=",;\t|")
                 sep_f = dialect.delimiter
             except csv.Error:
                 sep_f = ","  # Default to comma if sniffer fails
+
+                common = [",", ";", "\t", "|"]
+
                 counts = {s: hdr.count(s) for s in common}
                 if any(c > 0 for c in counts.values()):
                     sep_f = max(counts, key=counts.get)
