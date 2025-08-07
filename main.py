@@ -8,13 +8,9 @@ import os
 import traceback
 import logging
 
-procesar_reporte_rendimiento_func = None
-procesar_reporte_bitacora_func = None
-
 
 def setup_environment():
     """Configure logging, verify paths and import orchestrator helpers."""
-    global procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func
 
     debug_mode = '--debug' in sys.argv
     if debug_mode:
@@ -81,11 +77,16 @@ def setup_environment():
         except Exception as e_listdir_dp:
             logging.error("ERROR listando directorio data_processing: %s", e_listdir_dp)
 
+    procesar_reporte_rendimiento = None
+    procesar_reporte_bitacora = None
     try:
         logging.debug("Intentando: from data_processing.orchestrators import ...")
-        from data_processing.orchestrators import procesar_reporte_rendimiento, procesar_reporte_bitacora
-        procesar_reporte_rendimiento_func = procesar_reporte_rendimiento
-        procesar_reporte_bitacora_func = procesar_reporte_bitacora
+        from data_processing.orchestrators import (
+            procesar_reporte_rendimiento as _procesar_reporte_rendimiento,
+            procesar_reporte_bitacora as _procesar_reporte_bitacora,
+        )
+        procesar_reporte_rendimiento = _procesar_reporte_rendimiento
+        procesar_reporte_bitacora = _procesar_reporte_bitacora
         logging.debug("Importación de orchestrators A NIVEL DE MODULO exitosa.")
     except ModuleNotFoundError as e_mnfe:
         logging.error("ModuleNotFoundError al importar orchestrators: %s", e_mnfe)
@@ -95,6 +96,8 @@ def setup_environment():
     except Exception as e_ge:
         logging.error("Error inesperado al importar orchestrators: %s", e_ge)
         traceback.print_exc()
+
+    return procesar_reporte_rendimiento, procesar_reporte_bitacora
 
 
 import pandas as pd
@@ -162,8 +165,10 @@ log_summary_messages = []
 # INTERFAZ GRÁFICA DE USUARIO (GUI)
 # ============================================================
 class ReportApp:
-    def __init__(self, root_window):
+    def __init__(self, root_window, procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func):
         self.root = root_window
+        self.procesar_reporte_rendimiento_func = procesar_reporte_rendimiento_func
+        self.procesar_reporte_bitacora_func = procesar_reporte_bitacora_func
         self.root.title("Generador Marketing Reports vNUEVA (Modular)")
         self.root.geometry("950x950")
         self.style = ttk.Style()
@@ -773,12 +778,19 @@ class ReportApp:
         else: self._update_status(msg)
 
     def start_processing_thread(self):
-        global procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func 
-        
-        if procesar_reporte_rendimiento_func is None or procesar_reporte_bitacora_func is None:
-            print("FATAL: Funciones de procesamiento no se importaron correctamente al inicio (start_processing_thread).")
-            messagebox.showerror("Error Crítico", "Funciones de procesamiento no cargadas. Revise consola.")
-            self._update_status("ERROR CRÍTICO: Fallo en importación inicial (detectado en start_processing_thread).")
+        if (
+            self.procesar_reporte_rendimiento_func is None
+            or self.procesar_reporte_bitacora_func is None
+        ):
+            print(
+                "FATAL: Funciones de procesamiento no se importaron correctamente al inicio (start_processing_thread)."
+            )
+            messagebox.showerror(
+                "Error Crítico", "Funciones de procesamiento no cargadas. Revise consola."
+            )
+            self._update_status(
+                "ERROR CRÍTICO: Fallo en importación inicial (detectado en start_processing_thread)."
+            )
             return
 
         if self.is_processing: self._update_status("ADVERTENCIA: Ya hay un proceso en curso."); return
@@ -834,14 +846,14 @@ class ReportApp:
                          self._update_status("Bitácora Semanal: No se especificó semana válida. Se usará detección automática en backend.")
                 
                 months_to_compare = self.bitacora_months_to_compare_var.get() if bitacora_comp_type == "Monthly" else 2
-                target_func=procesar_reporte_bitacora_func;
+                target_func = self.procesar_reporte_bitacora_func
                 args_tuple=(self.input_files.copy(), out_dir, out_file, self.status_queue,
                             camp_proc, adsets_proc_list,
                             selected_week_start_str, selected_week_end_str,
                             bitacora_comp_type, months_to_compare)
 
             elif rep_type=="Rendimiento":
-                target_func=procesar_reporte_rendimiento_func; 
+                target_func = self.procesar_reporte_rendimiento_func
                 args_tuple=(self.input_files.copy(),out_dir,out_file,self.status_queue,camp_proc, adsets_proc_list)
             else: messagebox.showerror("Error",f"Tipo reporte '{rep_type}' no reconocido."); return
         except NameError as ne_func: err=f"Error Código: Falta función principal: {ne_func}"; messagebox.showerror("Error Interno",err); self._update_status(f"ERROR CRÍTICO: {err}"); return
@@ -992,7 +1004,7 @@ class ReportApp:
         return None
 
 
-def run():
+def run(procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func):
     """Instancia la interfaz gráfica y entra al bucle principal."""
     try:
         if 'tk' not in globals():
@@ -1012,7 +1024,7 @@ def run():
                 )
 
         root = tk.Tk()
-        app = ReportApp(root)
+        app = ReportApp(root, procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func)
         root.update_idletasks()
         w_val = root.winfo_width(); h_val = root.winfo_height()
         sw_val = root.winfo_screenwidth(); sh_val = root.winfo_screenheight()
@@ -1030,5 +1042,5 @@ def run():
 # PUNTO DE ENTRADA PRINCIPAL
 # ============================================================
 if __name__ == "__main__":
-    setup_environment()
-    run()
+    procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func = setup_environment()
+    run(procesar_reporte_rendimiento_func, procesar_reporte_bitacora_func)

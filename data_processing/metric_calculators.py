@@ -1,8 +1,10 @@
 # report_generator_project/data_processing/metric_calculators.py
 import pandas as pd
 import numpy as np
-from datetime import datetime, date, timedelta # Para _calcular_metricas_agregadas_y_estabilidad
-from formatting_utils import safe_division, safe_division_pct # De formatting_utils.py en raíz
+from datetime import datetime, date, timedelta  # Para _calcular_metricas_agregadas_y_estabilidad
+import logging
+from formatting_utils import safe_division, safe_division_pct  # De formatting_utils.py en raíz
+from utils import aggregate_strings
 
 # ============================================================
 # CÁLCULO DE MÉTRICAS ESPECÍFICAS Y ESTABILIDAD
@@ -11,11 +13,11 @@ def calcular_dias_activos_totales(df_combined):
     """Return number of active days per campaign, ad set and ad."""
     results={'Campaign':pd.DataFrame(columns=['Campaign','Días_Activo_Total']),'AdSet':pd.DataFrame(columns=['Campaign','AdSet','Días_Activo_Total']),'Anuncio':pd.DataFrame(columns=['Campaign','AdSet','Anuncio','Días_Activo_Total'])}
     if df_combined is None or df_combined.empty:
-        print("Adv: DF vacío (días activos).")
+        logging.warning("Adv: DF vacío (días activos).")
         return results
 
     if 'date' not in df_combined.columns or not pd.api.types.is_datetime64_any_dtype(df_combined['date']):
-        print("Adv: Col 'date' inválida.")
+        logging.warning("Adv: Col 'date' inválida.")
         return results
 
     active_df = df_combined.copy()
@@ -36,7 +38,7 @@ def calcular_dias_activos_totales(df_combined):
         active_df = active_df[impr_num > 0]
 
     if active_df.empty:
-        print("Adv: No hay filas consideradas activas para conteo de días.")
+        logging.warning("Adv: No hay filas consideradas activas para conteo de días.")
         return results
 
     if 'Campaign' in active_df.columns: active_df['Campaign'] = active_df['Campaign'].astype(str)
@@ -44,18 +46,29 @@ def calcular_dias_activos_totales(df_combined):
     if 'Anuncio' in active_df.columns: active_df['Anuncio'] = active_df['Anuncio'].astype(str)
 
     if 'Campaign' in active_df.columns:
-        try: days_camp=active_df.groupby('Campaign',observed=False)['date'].nunique().reset_index(name='Días_Activo_Total'); results['Campaign']=days_camp; print(f"Días activos calc. {len(days_camp)} campañas.")
-        except Exception as e_camp: print(f"Error días campaña: {e_camp}"); results['Campaign'] = pd.DataFrame(columns=['Campaign','Días_Activo_Total'])
-    if 'AdSet' in active_df.columns and 'Campaign' in active_df.columns :
         try:
-            days_adset=active_df.groupby(['Campaign','AdSet'],observed=False)['date'].nunique().reset_index(name='Días_Activo_Total')
-            results['AdSet']=days_adset
-            print(f"Días activos calc. {len(results['AdSet'])} AdSets (Campaign/AdSet).")
-        except Exception as e_adset: print(f"Error días AdSet: {e_adset}"); results['AdSet'] = pd.DataFrame(columns=['Campaign','AdSet','Días_Activo_Total'])
+            days_camp = active_df.groupby('Campaign', observed=False)['date'].nunique().reset_index(name='Días_Activo_Total')
+            results['Campaign'] = days_camp
+            logging.info("Días activos calc. %d campañas.", len(days_camp))
+        except Exception as e_camp:
+            logging.error("Error días campaña: %s", e_camp)
+            results['Campaign'] = pd.DataFrame(columns=['Campaign', 'Días_Activo_Total'])
+    if 'AdSet' in active_df.columns and 'Campaign' in active_df.columns:
+        try:
+            days_adset = active_df.groupby(['Campaign', 'AdSet'], observed=False)['date'].nunique().reset_index(name='Días_Activo_Total')
+            results['AdSet'] = days_adset
+            logging.info("Días activos calc. %d AdSets (Campaign/AdSet).", len(results['AdSet']))
+        except Exception as e_adset:
+            logging.error("Error días AdSet: %s", e_adset)
+            results['AdSet'] = pd.DataFrame(columns=['Campaign', 'AdSet', 'Días_Activo_Total'])
     if 'Anuncio' in active_df.columns and 'Campaign' in active_df.columns and 'AdSet' in active_df.columns:
-       try:
-           days_ad=active_df.groupby(['Campaign','AdSet','Anuncio'],observed=False)['date'].nunique().reset_index(name='Días_Activo_Total'); results['Anuncio']=days_ad; print(f"Días activos calc. {len(days_ad)} Anuncios.")
-       except Exception as e_ad: print(f"Error días Anuncio: {e_ad}"); results['Anuncio'] = pd.DataFrame(columns=['Campaign','AdSet','Anuncio','Días_Activo_Total'])
+        try:
+            days_ad = active_df.groupby(['Campaign', 'AdSet', 'Anuncio'], observed=False)['date'].nunique().reset_index(name='Días_Activo_Total')
+            results['Anuncio'] = days_ad
+            logging.info("Días activos calc. %d Anuncios.", len(days_ad))
+        except Exception as e_ad:
+            logging.error("Error días Anuncio: %s", e_ad)
+            results['Anuncio'] = pd.DataFrame(columns=['Campaign', 'AdSet', 'Anuncio', 'Días_Activo_Total'])
     return results
 
 def _calculate_stability_pct(series):
