@@ -1,5 +1,23 @@
 # report_generator_project/config.py
-from utils import normalize # Suponiendo que normalize está en utils.py
+"""Configuración global del proyecto.
+
+Además del mapeo de columnas utilizado para la importación de archivos
+locales, este módulo expone parámetros de conexión a SQL obtenidos desde
+variables de entorno.  Se mantiene la compatibilidad con el flujo actual
+que trabaja en memoria.
+"""
+
+import os
+from utils import normalize  # Suponiendo que normalize está en utils.py
+
+# Parámetros de conexión SQL (se pueden sobrescribir mediante variables de
+# entorno).  Se definen valores por defecto de desarrollo que permiten
+# utilizar SQLite sin configuración adicional.
+SQL_HOST = os.getenv("SQL_HOST", "localhost")
+SQL_PORT = int(os.getenv("SQL_PORT", "5432"))
+SQL_DB = os.getenv("SQL_DB", "app.db")
+SQL_USER = os.getenv("SQL_USER", "user")
+SQL_PASSWORD = os.getenv("SQL_PASSWORD", "password")
 
 # ============================================================
 # CONFIGURACIÓN ESPECÍFICA DEL REPORTE

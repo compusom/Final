@@ -6,6 +6,7 @@ import traceback
 import re # Para el resumen de log
 from datetime import datetime, date, timedelta # Para fechas default
 import locale # Para el locale en bitácora
+from typing import Optional
 
 # Importaciones de dateutil (intentar, pero no hacer que falle el módulo entero si no están)
 try:
@@ -214,10 +215,21 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
                 log(f"Adv: error al cerrar log: {e_close}")
 
 
-def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_queue,
-                               selected_campaign, selected_adsets,
-                               current_week_start_input_str, current_week_end_input_str,
-                               bitacora_comparison_type, months_to_compare=2):
+def procesar_reporte_bitacora(
+    input_files,
+    output_dir,
+    output_filename,
+    status_queue,
+    selected_campaign,
+    selected_adsets,
+    current_week_start_input_str,
+    current_week_end_input_str,
+    bitacora_comparison_type,
+    months_to_compare=2,
+    *,
+    data_source: str = "local",
+    id_cliente: "Optional[int]" = None,
+):
     log_file_handler = None
     global log_summary_messages_orchestrator
     log_summary_messages_orchestrator = []
@@ -250,7 +262,17 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
              log(f"--- Rango semana de referencia (desde GUI): '{current_week_start_input_str or 'Auto'}' a '{current_week_end_input_str or 'Auto'}' ---")
 
         log("--- Fase 1: Carga y Preparación (Bitácora) ---", importante=True)
-        df_combined, detected_currency, _ = cargar_y_preparar_datos(input_files, status_queue, selected_campaign)
+        if data_source == "sql":
+            from .sql_loader import load_performance_data
+
+            if id_cliente is None:
+                raise ValueError("id_cliente es requerido cuando data_source='sql'")
+            df_combined = load_performance_data(id_cliente)
+            detected_currency = "EUR"  # Por defecto
+        else:
+            df_combined, detected_currency, _ = cargar_y_preparar_datos(
+                input_files, status_queue, selected_campaign
+            )
         if df_combined is None or df_combined.empty:
             log("Fallo al cargar/filtrar datos para Bitácora. Abortando.", importante=True)
             status_queue.put("---ERROR---"); return
