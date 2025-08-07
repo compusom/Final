@@ -104,10 +104,39 @@ def safe_division_pct(n_input, d_input):
         return pd.Series(result_values, index=index, name=name)
 # --- FIN DE FUNCIONES IMPORTANTES ---
 
-def _format_dataframe_to_markdown(df, title, log_func, float_cols_fmt={}, int_cols=[], pct_cols_fmt={}, currency_cols={}, stability_cols=[], default_prec=2, max_col_width=None, numeric_cols_for_alignment=[]):
+def _format_dataframe_to_markdown(
+    df,
+    title,
+    log_func,
+    float_cols_fmt=None,
+    int_cols=None,
+    pct_cols_fmt=None,
+    currency_cols=None,
+    stability_cols=None,
+    default_prec=2,
+    max_col_width=None,
+    numeric_cols_for_alignment=None,
+):
     """Format a DataFrame applying numeric formatting and return markdown."""
-    if df is None or df.empty: log_func(f"\n** {title} **"); log_func("   No hay datos disponibles."); return
-    log_func(f"\n** {title} **"); df_formatted=df.copy();
+    if df is None or df.empty:
+        log_func(f"\n** {title} **")
+        log_func("   No hay datos disponibles.")
+        return
+    log_func(f"\n** {title} **")
+    df_formatted = df.copy()
+
+    if float_cols_fmt is None:
+        float_cols_fmt = {}
+    if int_cols is None:
+        int_cols = []
+    if pct_cols_fmt is None:
+        pct_cols_fmt = {}
+    if currency_cols is None:
+        currency_cols = {}
+    if stability_cols is None:
+        stability_cols = []
+    if numeric_cols_for_alignment is None:
+        numeric_cols_for_alignment = []
 
     headers=df_formatted.columns.tolist()
     clean_headers=[]; header_map_reverse = {}
