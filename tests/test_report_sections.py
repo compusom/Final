@@ -1,14 +1,14 @@
 import pandas as pd
 from datetime import datetime
 from data_processing.report_sections import (
-    _generar_tabla_bitacora_top_ads,
-    _generar_tabla_bitacora_top_adsets,
-    _generar_tabla_bitacora_top_campaigns,
-    _generar_tabla_bitacora_top_entities,
+    generar_tabla_bitacora_top_ads,
+    generar_tabla_bitacora_top_adsets,
+    generar_tabla_bitacora_top_campaigns,
+    generar_tabla_bitacora_top_entities,
     METRIC_LABELS_ADS,
     METRIC_LABELS_BASE,
-    _generar_tabla_performance_publico,
-    _generar_tabla_tendencia_ratios
+    generar_tabla_performance_publico,
+    generar_tabla_tendencia_ratios
 )
 from data_processing.report_sections import _clean_audience_string
 
@@ -51,7 +51,7 @@ def test_top_ads_basic_columns(capsys):
         'Días_Activo_Total': [2]
     })
     logs = []
-    _generar_tabla_bitacora_top_ads(df, periods, active, logs.append, '$', top_n=1)
+    generar_tabla_bitacora_top_ads(df, periods, active, logs.append, '$', top_n=1)
     output = "\n".join(logs)
     assert 'Top 1 Ads Bitácora - Semana actual' in output
     assert 'Anuncio' in output
@@ -94,7 +94,7 @@ def test_top_adsets_weekly_table(capsys):
         'Días_Activo_Total': [2]
     })
     logs = []
-    _generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
+    generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
     output = "\n".join(logs)
     assert 'Top 1 AdSets Bitácora - Semana actual' in output
     assert 'Días Act' in output
@@ -121,7 +121,7 @@ def test_top_adsets_deduplication():
         'Días_Activo_Total': [2, 2],
     })
     logs = []
-    _generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
+    generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
     row_lines = [l for l in logs if l.startswith('| Camp ')]
     assert len(row_lines) == 1
 
@@ -146,7 +146,7 @@ def test_top_adsets_deduplication():
         'Días_Activo_Total': [2, 2],
     })
     logs = []
-    _generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
+    generar_tabla_bitacora_top_adsets(df, periods, active, logs.append, '$', top_n=1)
     row_lines = [l for l in logs if l.startswith('| Camp ')]
     assert len(row_lines) == 1
 
@@ -171,7 +171,7 @@ def test_top_campaigns_weekly_table(capsys):
         'Días_Activo_Total': [2]
     })
     logs = []
-    _generar_tabla_bitacora_top_campaigns(df, periods, active, logs.append, '$', top_n=1)
+    generar_tabla_bitacora_top_campaigns(df, periods, active, logs.append, '$', top_n=1)
     output = "\n".join(logs)
     assert 'Top 1 Campañas Bitácora - Semana actual' in output
     assert 'Ventas' in output
@@ -200,7 +200,7 @@ def test_generic_helper_ads(capsys):
         'Días_Activo_Total': [2]
     })
     logs = []
-    _generar_tabla_bitacora_top_entities(
+    generar_tabla_bitacora_top_entities(
         df,
         periods,
         active,
@@ -228,7 +228,7 @@ def test_performance_publico_table():
         'date': pd.to_datetime(['2024-06-01', '2024-06-02', '2024-06-01']),
     })
     logs = []
-    _generar_tabla_performance_publico(df, logs.append, '$', top_n=2)
+    generar_tabla_performance_publico(df, logs.append, '$', top_n=2)
     output = "\n".join(logs)
     assert 'TABLA: PERFORMANCE_PUBLICO' in output
 
@@ -248,7 +248,7 @@ def test_tendencia_ratios_weekly():
         (datetime(2024, 5, 26), datetime(2024, 5, 26), '1ª semana anterior'),
     ]
     logs = []
-    _generar_tabla_tendencia_ratios(df, periods, logs.append, period_type='Weeks')
+    generar_tabla_tendencia_ratios(df, periods, logs.append, period_type='Weeks')
     output = "\n".join(logs)
     assert 'TABLA: TENDENCIA_RATIOS' in output
 

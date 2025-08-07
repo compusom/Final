@@ -17,7 +17,7 @@ from formatting_utils import (
     fmt_int, fmt_float, fmt_pct, fmt_stability, variation, format_step_pct,
     safe_division, safe_division_pct, _format_dataframe_to_markdown
 )
-from .metric_calculators import _calcular_metricas_agregadas_y_estabilidad, _calculate_stability_pct # Nótese el .
+from .metric_calculators import _calcular_metricas_agregadas_y_estabilidad, _calculate_stability_pct  # Nótese el .
 from config import numeric_internal_cols # Importar desde la raíz del proyecto
 from utils import aggregate_strings
 
@@ -81,7 +81,7 @@ METRIC_LABELS_ADS = METRIC_LABELS_BASE + [
 # ============================================================
 
 
-def _generar_tabla_vertical_global(df_daily_agg, detected_currency, log_func):
+def generar_tabla_vertical_global(df_daily_agg, detected_currency, log_func):
     """Build the summary table with global metrics and last month comparison."""
 
     log_func("\n\n============================================================"); log_func("===== 1. Métricas Globales y Comparativa Mensual ====="); log_func("============================================================")
@@ -155,9 +155,9 @@ def _generar_tabla_vertical_global(df_daily_agg, detected_currency, log_func):
 
 
 
-def _generar_tabla_vertical_entidad(entity_level, entity_name, dias_activos_total, df_daily_entity,
-                                    min_entity_dt, max_entity_dt, adset_count,
-                                    periods, detected_currency, log_func, period_type="Days"):
+def generar_tabla_vertical_entidad(entity_level, entity_name, dias_activos_total, df_daily_entity,
+                                   min_entity_dt, max_entity_dt, adset_count,
+                                   periods, detected_currency, log_func, period_type="Days"):
     """Generate the vertical metrics table for a specific campaign/ad/adset."""
 
 
@@ -451,7 +451,7 @@ def _generar_tabla_vertical_entidad(entity_level, entity_name, dias_activos_tota
     log_func("  ---")
 
 
-def _generar_tabla_embudo_rendimiento(df_daily_agg, periods_numeric, log_func, detected_currency):
+def generar_tabla_embudo_rendimiento(df_daily_agg, periods_numeric, log_func, detected_currency):
     """Create funnel analysis table comparing periods against projected averages."""
 
     log_func("\n\n============================================================");log_func("===== 4. Análisis de Embudo por Período (vs Promedio U30 Proyectado) =====");log_func("============================================================")
@@ -526,7 +526,7 @@ def _generar_tabla_embudo_rendimiento(df_daily_agg, periods_numeric, log_func, d
 
 
 
-def _generar_tabla_embudo_bitacora(df_daily_agg, bitacora_periods_list, log_func, detected_currency, period_type="Weeks"):
+def generar_tabla_embudo_bitacora(df_daily_agg, bitacora_periods_list, log_func, detected_currency, period_type="Weeks"):
     """Produce a detailed funnel table for a sequence of recent periods."""
 
     original_locale = locale.getlocale(locale.LC_TIME)
@@ -668,7 +668,7 @@ def _generar_tabla_embudo_bitacora(df_daily_agg, bitacora_periods_list, log_func
         log_func(f"Adv: error restaurando locale: {loc_err}")
 
 
-def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, log_func, detected_currency, last_day_status_lookup=None):
+def generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, log_func, detected_currency, last_day_status_lookup=None):
     """Generate consolidated report sections focused on individual ads."""
 
     log_func("\n\n============================================================");log_func("===== 5. Análisis Consolidado de ADS =====");log_func("=====     (Filtro: Ads con Gasto > 0, Impresiones > 0 Y Días Activos > 0) =====");log_func("============================================================")
@@ -947,7 +947,7 @@ def _generar_analisis_ads(df_combined, df_daily_agg, active_days_total_ad_df, lo
     log_func("\n--- Fin Análisis Consolidado de Ads ---")
 
 
-def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_func, detected_currency, top_n=20):
+def generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_func, detected_currency, top_n=20):
     """List historically best performing ads by spend and ROAS."""
 
     log_func("\n\n============================================================");log_func(f"===== 6. Top {top_n} Ads Histórico (Orden: ROAS Desc) =====");log_func("============================================================")
@@ -1056,10 +1056,10 @@ def _generar_tabla_top_ads_historico(df_daily_agg, active_days_total_ad_df, log_
     log_func("\n  **Detalle Top Ads Histórico:** Muestra los anuncios con mejor rendimiento histórico, ordenados por ROAS de mayor a menor. Todas las métricas son acumuladas globales.");
     log_func("  ---")
 
-def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_days_total_ad_df, log_func, detected_currency, top_n=20):
+def generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_days_total_ad_df, log_func, detected_currency, top_n=20):
     """Genera tablas por semana con los Top Ads ordenados por ROAS e impresiones."""
     group_cols = ['Campaign', 'AdSet', 'Anuncio']
-    _generar_tabla_bitacora_top_entities(
+    generar_tabla_bitacora_top_entities(
         df_daily_agg,
         bitacora_periods_list,
         active_days_total_ad_df,
@@ -1078,7 +1078,7 @@ def _generar_tabla_bitacora_top_ads(df_daily_agg, bitacora_periods_list, active_
     log_func("  ---")
 
 
-def _generar_tabla_bitacora_top_entities(
+def generar_tabla_bitacora_top_entities(
     df_daily_agg,
     bitacora_periods_list,
     active_days_df,
@@ -1259,10 +1259,10 @@ def _generar_tabla_bitacora_top_entities(
 
 
 
-def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, active_days_total_adset_df, log_func, detected_currency, top_n=20):
+def generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, active_days_total_adset_df, log_func, detected_currency, top_n=20):
     """Genera tablas por semana con los Top AdSets ordenados por ROAS."""
     group_cols = ['Campaign', 'AdSet']
-    _generar_tabla_bitacora_top_entities(
+    generar_tabla_bitacora_top_entities(
         df_daily_agg,
         bitacora_periods_list,
         active_days_total_adset_df,
@@ -1282,10 +1282,10 @@ def _generar_tabla_bitacora_top_adsets(df_daily_agg, bitacora_periods_list, acti
     log_func("  ---")
 
 
-def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, active_days_total_campaign_df, log_func, detected_currency, top_n=10):
+def generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, active_days_total_campaign_df, log_func, detected_currency, top_n=10):
     """Genera tablas por semana con las Top Campañas ordenadas por ROAS."""
     group_cols = ['Campaign']
-    _generar_tabla_bitacora_top_entities(
+    generar_tabla_bitacora_top_entities(
         df_daily_agg,
         bitacora_periods_list,
         active_days_total_campaign_df,
@@ -1304,7 +1304,7 @@ def _generar_tabla_bitacora_top_campaigns(df_daily_agg, bitacora_periods_list, a
     log_func("  ---")
 
 
-def _generar_tabla_performance_publico(df_daily_agg, log_func, detected_currency, top_n=5):
+def generar_tabla_performance_publico(df_daily_agg, log_func, detected_currency, top_n=5):
     """Construye tabla con métricas de rendimiento por público."""
 
     log_func("\n\n============================================================")
@@ -1368,7 +1368,7 @@ def _generar_tabla_performance_publico(df_daily_agg, log_func, detected_currency
     )
 
 
-def _generar_tabla_tendencia_ratios(df_daily_total, bitacora_periods_list, log_func, period_type="Weeks"):
+def generar_tabla_tendencia_ratios(df_daily_total, bitacora_periods_list, log_func, period_type="Weeks"):
     """Genera tabla de tendencia de ratios por periodo."""
 
     header_label = 'Semana' if period_type == 'Weeks' else 'Mes'
@@ -1424,7 +1424,7 @@ def _generar_tabla_tendencia_ratios(df_daily_total, bitacora_periods_list, log_f
     )
 
 
-def _generar_tabla_bitacora_entidad(entity_level, entity_name, df_daily_entity,
+def generar_tabla_bitacora_entidad(entity_level, entity_name, df_daily_entity,
                                    bitacora_periods_list, detected_currency, log_func, period_type="Weeks"):
     """Build a period-over-period table for a single entity within the report."""
 

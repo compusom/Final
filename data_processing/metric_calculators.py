@@ -7,7 +7,7 @@ from formatting_utils import safe_division, safe_division_pct # De formatting_ut
 # ============================================================
 # CÁLCULO DE MÉTRICAS ESPECÍFICAS Y ESTABILIDAD
 # ============================================================
-def _calcular_dias_activos_totales(df_combined):
+def calcular_dias_activos_totales(df_combined):
     """Return number of active days per campaign, ad set and ad."""
     results={'Campaign':pd.DataFrame(columns=['Campaign','Días_Activo_Total']),'AdSet':pd.DataFrame(columns=['Campaign','AdSet','Días_Activo_Total']),'Anuncio':pd.DataFrame(columns=['Campaign','AdSet','Anuncio','Días_Activo_Total'])}
     if df_combined is None or df_combined.empty:
