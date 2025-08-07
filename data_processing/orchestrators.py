@@ -17,16 +17,16 @@ except ImportError:
     print("ADVERTENCIA (orchestrators.py): python-dateutil no encontrado. Funcionalidad de Bitácora Mensual y algunas comparaciones de fechas podrían fallar.")
 
 # Importaciones relativas para módulos dentro del mismo paquete 'data_processing'
-from .loaders import _cargar_y_preparar_datos
-from .aggregators import _agregar_datos_diarios
-from .metric_calculators import _calcular_dias_activos_totales
+from .loaders import cargar_y_preparar_datos
+from .aggregators import agregar_datos_diarios
+from .metric_calculators import calcular_dias_activos_totales
 from .report_sections import (
-    _generar_tabla_vertical_global, _generar_tabla_vertical_entidad,
-    _generar_tabla_embudo_rendimiento, _generar_tabla_embudo_bitacora,
-    _generar_analisis_ads, _generar_tabla_top_ads_historico,
-    _generar_tabla_bitacora_entidad, _generar_tabla_bitacora_top_ads,
-    _generar_tabla_bitacora_top_adsets, _generar_tabla_bitacora_top_campaigns,
-    _generar_tabla_performance_publico, _generar_tabla_tendencia_ratios
+    generar_tabla_vertical_global, generar_tabla_vertical_entidad,
+    generar_tabla_embudo_rendimiento, generar_tabla_embudo_bitacora,
+    generar_analisis_ads, generar_tabla_top_ads_historico,
+    generar_tabla_bitacora_entidad, generar_tabla_bitacora_top_ads,
+    generar_tabla_bitacora_top_adsets, generar_tabla_bitacora_top_campaigns,
+    generar_tabla_performance_publico, generar_tabla_tendencia_ratios
 )
 
 # Importaciones de módulos en la raíz del proyecto
@@ -55,7 +55,7 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
     try:
         log("--- Iniciando Reporte Rendimiento ---", importante=True)
         log("--- Fase 1: Carga y Preparación ---", importante=True)
-        df_combined, detected_currency, _ = _cargar_y_preparar_datos(input_files, status_queue, selected_campaign)
+        df_combined, detected_currency, _ = cargar_y_preparar_datos(input_files, status_queue, selected_campaign)
         if df_combined is None or df_combined.empty:
             log("Fallo al cargar/filtrar datos. Abortando.", importante=True)
             status_queue.put("---ERROR---")
@@ -74,7 +74,7 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
 
             log("\n--- Análisis de Rendimiento ---")
             log("\n--- Iniciando Agregación Diaria ---", importante=True)
-            df_daily_agg = _agregar_datos_diarios(df_combined, status_queue, selected_adsets)
+            df_daily_agg = agregar_datos_diarios(df_combined, status_queue, selected_adsets)
 
             if df_daily_agg is None or df_daily_agg.empty or 'date' not in df_daily_agg.columns or df_daily_agg['date'].dropna().empty:
                  log("!!! Falló agregación diaria o resultado inválido. Abortando. !!!",importante=True)
@@ -83,7 +83,7 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
             log("Agregación diaria OK.")
             
             log("\n--- Calculando Días Activos Totales ---", importante=True)
-            active_days_results = _calcular_dias_activos_totales(df_combined)
+            active_days_results = calcular_dias_activos_totales(df_combined)
             active_days_campaign = active_days_results.get('Campaign',pd.DataFrame())
             active_days_adset = active_days_results.get('AdSet',pd.DataFrame())
             active_days_ad = active_days_results.get('Anuncio',pd.DataFrame())
@@ -115,11 +115,11 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
 
             periods_for_entity_tables=[3,7,14,30] 
             log("--- Iniciando Sección 1: Global ---",importante=True);
-            try: _generar_tabla_vertical_global(df_daily_agg,detected_currency,log) 
+            try: generar_tabla_vertical_global(df_daily_agg,detected_currency,log)
             except Exception as e_s1: log(f"\n!!! Error Sección 1 (Global): {e_s1} !!!\n{traceback.format_exc()}",importante=True)
             
             log("--- Iniciando Sección 4: Embudo ---",importante=True);
-            try: _generar_tabla_embudo_rendimiento(df_daily_agg,periods_for_entity_tables,log,detected_currency) 
+            try: generar_tabla_embudo_rendimiento(df_daily_agg,periods_for_entity_tables,log,detected_currency)
             except Exception as e_s4: log(f"\n!!! Error Sección 4 (Embudo): {e_s4} !!!\n{traceback.format_exc()}",importante=True)
 
             log("\n--- Filtrando Campañas y AdSets con Impresiones > 0 ---",importante=True); 
@@ -153,7 +153,7 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
                           valid_adsets_for_camp = [adset for adset in adsets_in_camp_all if adset in valid_adsets_filter] 
                           adset_count = len(valid_adsets_for_camp) 
                           min_dt_camp=df_subset_camp['date'].min(); max_dt_camp=df_subset_camp['date'].max() 
-                          try: _generar_tabla_vertical_entidad('Campaña',cn,dias,df_subset_camp,min_dt_camp,max_dt_camp,adset_count,periods_for_entity_tables,detected_currency,log, period_type="Days") 
+                          try: generar_tabla_vertical_entidad('Campaña',cn,dias,df_subset_camp,min_dt_camp,max_dt_camp,adset_count,periods_for_entity_tables,detected_currency,log, period_type="Days")
                           except Exception as e_s2: log(f"\n!!! Error generando tabla campaña '{cn}': {e_s2} !!!\n{traceback.format_exc()}",importante=True)
             else: log("Datos insuficientes ('Campaign', fechas) para análisis por Campaña.")
 
@@ -172,16 +172,16 @@ def procesar_reporte_rendimiento(input_files, output_dir, output_filename, statu
                             if not dias_rows_adset.empty:
                                 dias_total_adset = dias_rows_adset['Días_Activo_Total'].sum() 
                         min_dt_adset=df_subset_adset['date'].min(); max_dt_adset=df_subset_adset['date'].max() 
-                        try: _generar_tabla_vertical_entidad('AdSet',adset_name,dias_total_adset,df_subset_adset,min_dt_adset,max_dt_adset,None,periods_for_entity_tables,detected_currency,log, period_type="Days") 
+                        try: generar_tabla_vertical_entidad('AdSet',adset_name,dias_total_adset,df_subset_adset,min_dt_adset,max_dt_adset,None,periods_for_entity_tables,detected_currency,log, period_type="Days")
                         except Exception as e_s3: log(f"\n!!! Error generando tabla AdSet '{adset_name}': {e_s3} !!!\n{traceback.format_exc()}",importante=True)
             else: log("Datos insuficientes ('AdSet', fechas) para análisis por AdSet.")
 
             log("--- Iniciando Sección 5: Ads (Consolidado) ---",importante=True);
-            try: _generar_analisis_ads(df_combined,df_daily_agg,active_days_ad,log,detected_currency,last_day_status_lookup) 
+            try: generar_analisis_ads(df_combined,df_daily_agg,active_days_ad,log,detected_currency,last_day_status_lookup)
             except Exception as e_s5: log(f"\n!!! Error Sección 5 (Análisis Ads): {e_s5} !!!\n{traceback.format_exc()}",importante=True)
             
             log("--- Iniciando Sección 6: Top Ads Histórico ---",importante=True);
-            try: _generar_tabla_top_ads_historico(df_daily_agg,active_days_ad,log,detected_currency, top_n=20)
+            try: generar_tabla_top_ads_historico(df_daily_agg,active_days_ad,log,detected_currency, top_n=20)
             except Exception as e_s6: log(f"\n!!! Error Sección 6 (Top Ads): {e_s6} !!!\n{traceback.format_exc()}",importante=True)
 
             log("\n\n============================================================");log("===== Resumen del Proceso =====");log("============================================================")
@@ -250,7 +250,7 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
              log(f"--- Rango semana de referencia (desde GUI): '{current_week_start_input_str or 'Auto'}' a '{current_week_end_input_str or 'Auto'}' ---")
 
         log("--- Fase 1: Carga y Preparación (Bitácora) ---", importante=True)
-        df_combined, detected_currency, _ = _cargar_y_preparar_datos(input_files, status_queue, selected_campaign)
+        df_combined, detected_currency, _ = cargar_y_preparar_datos(input_files, status_queue, selected_campaign)
         if df_combined is None or df_combined.empty:
             log("Fallo al cargar/filtrar datos para Bitácora. Abortando.", importante=True)
             status_queue.put("---ERROR---"); return
@@ -269,7 +269,7 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
 
             log("\n--- Análisis de Bitácora ---")
             log("\n--- Iniciando Agregación Diaria (Bitácora) ---", importante=True)
-            df_daily_agg_full = _agregar_datos_diarios(df_combined, status_queue, selected_adsets)
+            df_daily_agg_full = agregar_datos_diarios(df_combined, status_queue, selected_adsets)
 
             if df_daily_agg_full is None or df_daily_agg_full.empty or 'date' not in df_daily_agg_full.columns or df_daily_agg_full['date'].dropna().empty:
                 log("!!! Falló agregación diaria o no hay fechas válidas. Abortando Bitácora. !!!", importante=True)
@@ -277,7 +277,7 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
             log("Agregación diaria OK.")
 
             log("--- Calculando Días Activos Totales (Bitácora) ---", importante=True)
-            active_days_results = _calcular_dias_activos_totales(df_combined)
+            active_days_results = calcular_dias_activos_totales(df_combined)
             active_days_campaign = active_days_results.get('Campaign', pd.DataFrame())
             active_days_adset = active_days_results.get('AdSet', pd.DataFrame())
             active_days_ad = active_days_results.get('Anuncio', pd.DataFrame())
@@ -286,7 +286,7 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
             max_date_overall = df_daily_agg_full['date'].max().date()
             log(f"  Rango total de datos agregados (considerando filtros): {min_date_overall.strftime('%d/%m/%Y')} a {max_date_overall.strftime('%d/%m/%Y')}")
 
-            bitacora_periods_list = [] 
+            bitacora_periods_list = []
 
             if bitacora_comparison_type == "Weekly":
                 current_week_start_obj = None
@@ -494,16 +494,16 @@ def procesar_reporte_bitacora(input_files, output_dir, output_filename, status_q
             df_daily_total_for_bitacora['ctr_out'] = safe_division_pct(co_tot, i_tot)
             base_rv_tot=np.where(pd.Series(rv3_tot>0).fillna(False),rv3_tot,i_tot); df_daily_total_for_bitacora['rv25_pct']=safe_division_pct(rv25_tot,base_rv_tot); df_daily_total_for_bitacora['rv75_pct']=safe_division_pct(rv75_tot,base_rv_tot); df_daily_total_for_bitacora['rv100_pct']=safe_division_pct(rv100_tot,base_rv_tot)
 
-            _generar_tabla_bitacora_entidad('Cuenta Completa', 'Agregado Total', df_daily_total_for_bitacora,
+            generar_tabla_bitacora_entidad('Cuenta Completa', 'Agregado Total', df_daily_total_for_bitacora,
                                             bitacora_periods_list, detected_currency, log, period_type=bitacora_comparison_type)
 
-            _generar_tabla_embudo_bitacora(df_daily_total_for_bitacora, bitacora_periods_list, log, detected_currency, period_type=bitacora_comparison_type)
+            generar_tabla_embudo_bitacora(df_daily_total_for_bitacora, bitacora_periods_list, log, detected_currency, period_type=bitacora_comparison_type)
 
-            _generar_tabla_bitacora_top_ads(df_daily_agg_full, bitacora_periods_list, active_days_ad, log, detected_currency, top_n=20)
-            _generar_tabla_bitacora_top_adsets(df_daily_agg_full, bitacora_periods_list, active_days_adset, log, detected_currency)
-            _generar_tabla_bitacora_top_campaigns(df_daily_agg_full, bitacora_periods_list, active_days_campaign, log, detected_currency)
-            _generar_tabla_performance_publico(df_daily_agg_full, log, detected_currency, top_n=5)
-            _generar_tabla_tendencia_ratios(df_daily_total_for_bitacora, bitacora_periods_list, log, period_type=bitacora_comparison_type)
+            generar_tabla_bitacora_top_ads(df_daily_agg_full, bitacora_periods_list, active_days_ad, log, detected_currency, top_n=20)
+            generar_tabla_bitacora_top_adsets(df_daily_agg_full, bitacora_periods_list, active_days_adset, log, detected_currency)
+            generar_tabla_bitacora_top_campaigns(df_daily_agg_full, bitacora_periods_list, active_days_campaign, log, detected_currency)
+            generar_tabla_performance_publico(df_daily_agg_full, log, detected_currency, top_n=5)
+            generar_tabla_tendencia_ratios(df_daily_total_for_bitacora, bitacora_periods_list, log, period_type=bitacora_comparison_type)
 
             log("\n\n============================================================");log(f"===== Resumen del Proceso (Bitácora {bitacora_comparison_type}) =====");log("============================================================")
             if log_summary_messages_orchestrator: [log(f"  - {re.sub(r'^\s*\[\d{2}:\d{2}:\d{2}\]\s*','',msg).strip().replace('---','-')}") for msg in log_summary_messages_orchestrator if re.sub(r'^\s*\[\d{2}:\d{2}:\d{2}\]\s*','',msg).strip()]

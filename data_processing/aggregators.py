@@ -8,7 +8,7 @@ from formatting_utils import safe_division, safe_division_pct # De formatting_ut
 # ============================================================
 # AGREGACIÓN DE DATOS
 # ============================================================
-def _agregar_datos_diarios(df_combined, status_queue, selected_adsets=None):
+def agregar_datos_diarios(df_combined, status_queue, selected_adsets=None):
     """Return a daily aggregated DataFrame for the selected AdSets."""
     log_and_update = lambda msg: status_queue.put(f"  [Diario] {msg}")
     log_and_update("Iniciando agregación diaria por Entidad...")

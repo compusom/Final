@@ -1,6 +1,6 @@
 import pandas as pd
 import queue
-from data_processing.aggregators import _agregar_datos_diarios
+from data_processing.aggregators import agregar_datos_diarios
 
 
 def test_aggregate_new_metrics():
@@ -16,7 +16,7 @@ def test_aggregate_new_metrics():
         'delivery_general_status': ['Activo', 'Activo'],
     })
     q = queue.SimpleQueue()
-    result = _agregar_datos_diarios(df, q)
+    result = agregar_datos_diarios(df, q)
     assert 'campaign_budget' in result.columns
     assert result['campaign_budget'].iloc[0] == 100
     assert 'adset_budget' in result.columns

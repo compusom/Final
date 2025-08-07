@@ -45,10 +45,6 @@ def aggregate_strings(series, separator=', ', max_len=70):
         result = result[:max_len-3] + '...'
     return result
 
-def _sanitize_filename(name): # Mantenido como _sanitize si se usa internamente para algo específico
-    s = str(name).strip().replace(' ', '_'); s = re.sub(r'[\\/*?:"<>|]', '', s)
-    s = normalize(s); s = re.sub(r'[^a-z0-9_.\-]+', '', s); return s[:100]
-
 def create_flexible_regex_pattern(normalized_key):
     escaped = re.escape(normalized_key); flexible = escaped.replace(r'\ ', r'\s+')
     parts = flexible.split(r'\s+'); pattern = r'\s*'.join(parts); return r'.*?' + pattern + r'.*?'
