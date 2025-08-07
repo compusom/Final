@@ -1,5 +1,5 @@
 import pandas as pd
-from data_processing.metric_calculators import _calcular_dias_activos_totales
+from data_processing.metric_calculators import calcular_dias_activos_totales
 
 
 def test_active_days_impressions_filter():
@@ -11,5 +11,5 @@ def test_active_days_impressions_filter():
         'Entrega': ['Activo', 'Activo', 'Apagado', 'Activo'],
         'impr': [10, 0, 15, 5]
     })
-    res = _calcular_dias_activos_totales(df)
+    res = calcular_dias_activos_totales(df)
     assert res['Anuncio']['Días_Activo_Total'].iloc[0] == 2

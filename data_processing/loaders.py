@@ -13,7 +13,8 @@ from file_io import find_date_column_name, get_dates_from_file
 # ============================================================
 # CARGA Y PREPARACIÓN DE DATOS
 # ============================================================
-def _cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
+def cargar_y_preparar_datos(input_files, status_queue, selected_campaign):
+    """Load, clean and unify raw ad data into a standardized DataFrame."""
     log_and_update = lambda msg: status_queue.put(msg)
     detected_currency_symbol = DEFAULT_CURRENCY_SYMBOL 
     first_currency_detected = False
